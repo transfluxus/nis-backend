@@ -1238,15 +1238,18 @@ def download_file(location, wv_user=None, wv_password=None, wv_host_name=None):
         if pr.netloc.lower() == wv_host_name:
             data = wv_download_file(location, wv_user, wv_password, wv_host_name)
         elif pr.netloc.lower() == "docs.google.com" or pr.netloc.lower() == "drive.google.com":
-            # Google Drive. Only XLSX files supported (if Google Calc, an Export to XLSX is done)
+            # Google Drive. CSV and XLSX files supported (if Google Sheets, an Export to XLSX is done)
             # Extract file id from the URL
             import re
             m = re.match(r".*[^-\w]([-\w]{33,})[^-\w]?.*", location)
             file_id = m.groups()[0]
-            url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx"  # &id={file_id}"
+            if "com/file" not in location:
+                url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx"  # &id={file_id}"
+            else:
+                url = f"https://docs.google.com/uc?export=download&id={file_id}"
             # resp = requests.get(url, headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}, allow_redirects=True)  # headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
             status_code, headers, data = download_with_pycurl(url)
-            print(f'curl -L "{url}" >> out.xlsx')
+            logging.debug(f'curl -L "{url}" >> out.xlsx')
             if status_code == 200 and "text/html" not in headers["content-type"]:
             # if resp.status_code == 200 and "text/html" not in resp.headers["Content-Type"]:
             #     data = io.BytesIO(resp.content)
@@ -1287,8 +1290,9 @@ def load_dataset(location: str=None):
             location = location[:pos-1]
         # Then, try to read it
         t = mimetypes.guess_type(location, strict=True)
-        if t[0] == "text/csv":
-            df = pd.read_csv(data)
+        if t[0] == "text/csv" or "com/file" in location:
+            data.seek(0)
+            df = pd.read_csv(data, comment="#")
         elif t[0] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" or t[0] == "application/vnd.ms-excel":
             if fragment:
                 df = pd.read_excel(data, sheet_name=fragment)

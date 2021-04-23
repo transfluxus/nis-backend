@@ -12,7 +12,7 @@ import xlrd
 
 import nexinfosys
 from nexinfosys.command_generators import IType
-from nexinfosys.common.helper import any_error_issue
+from nexinfosys.common.helper import any_error_issue, download_file
 from nexinfosys.model_services import get_case_study_registry_objects
 from nexinfosys.model_services.workspace import InteractiveSession, prepare_and_solve_model
 from nexinfosys.models.musiasem_methodology_support import DBSession
@@ -83,54 +83,8 @@ class NIS:
         :return: Number of added DataFrames
         """
         # Load a XLSX workbook into memory, as dataframes
-        pr = urlparse(fname)
-        if pr.scheme != "":
-            fragment = ""
-            if "#" in fname:
-                pos = fname.find("#")
-                fragment = fname[pos + 1:]
-                fname = fname[:pos]
-
-            # Load from remote site
-            if not wv_host_name:
-                wv_host_name = ""
-            if pr.netloc.lower() == wv_host_name:
-                # WebDAV
-                parts = fname.split("/")
-                for i, p in enumerate(parts):
-                    if p == wv_host_name:
-                        url = "/".join(parts[:i+1]) + "/"
-                        fname = "/" + "/".join(parts[i+1:])
-                        break
-
-                options = {
-                    "webdav_hostname": url,
-                    "webdav_login": wv_user,
-                    "webdav_password": wv_password
-                }
-                client = wc.Client(options)
-                with tempfile.NamedTemporaryFile(delete=True) as temp:
-                    client.download_sync(remote_path=fname, local_path=temp.name)
-                    f = open(temp.name, "rb")
-                    data = io.BytesIO(f.read())
-                    f.close()
-            elif pr.netloc.lower() == "docs.google.com" or pr.netloc.lower() == "drive.google.com":
-                # Google Drive. Only XLSX files supported (if Google Calc, an Export to XLSX is done)
-                # Extract file id from the URL
-                import re
-                m = re.match(r".*[^-\w]([-\w]{33,})[^-\w]?.*", fname)
-                file_id = m.groups()[0]
-                url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=xlsx&id={file_id}"
-                resp = requests.get(url, allow_redirects=True)  # headers={'Cache-Control': 'no-cache'},
-                if resp.status_code == 200:
-                    data = io.BytesIO(resp.content)
-            else:
-                data = urllib.request.urlopen(fname).read()
-                data = io.BytesIO(data)
-            xl = pd.ExcelFile(xlrd.open_workbook(file_contents=data.getvalue()),
-                              engine="xlrd")
-        else:
-            xl = pd.ExcelFile(fname)
+        bytes_io = download_file(fname, wv_user, wv_password, wv_host_name)
+        xl = pd.ExcelFile(xlrd.open_workbook(file_contents=bytes_io.getvalue()), engine="xlrd")
         cont = 0
         for sheet_name in xl.sheet_names:
             df = xl.parse(sheet_name, header=0)
@@ -221,6 +175,7 @@ class NIS:
             generator_type = "spreadsheet"
             content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             buffer = self._generate_in_memory_excel()
+            print(len(buffer))
             execute = True
             register = False
 
@@ -502,15 +457,23 @@ class NIS:
 
 if __name__ == '__main__':
     examples = [
-        "/home/rnebot/GoogleDrive/AA_PROPUESTAS/Sentinel/Enviro/examples/01_eurostat_datasets.xlsx"
+        ("https://docs.google.com/spreadsheets/d/1z8QKYkvlUPLAwo6NYM8rRLMj7_QjPRYOgAsTRI2HwWE/edit#gid=1467907392", False),
+        ("https://docs.google.com/spreadsheets/d/12AlJ0tdu2b-cfalNzLqFYfiC-hdDlIv1M1pTE3AfSWY/edit#gid=84311637", False),
+        ("/home/rnebot/GoogleDrive/AA_PROPUESTAS/Sentinel/Enviro/examples/01_eurostat_datasets.xlsx", False),
+        ("/home/rnebot/GoogleDrive/AA_PROPUESTAS/Sentinel/Enviro/examples/howTo Examples SC-Observers.xlsx", True),
+        # ("/home/rnebot/Dropbox/nis-backend/backend_tests/z_input_files/v2/Netherlandsv1ToNISHierarchy2.xlsx", True),
+        # ("/home/rnebot/Dropbox/nis-backend/backend_tests/z_input_files/v2/Biofuel_NIS.xlsx", False),
                 ]
     nis = NIS()
-    nis.open_session()
-    # nis.load_workbook("/home/rnebot/Dropbox/nis-backend/backend_tests/z_input_files/v2/Biofuel_NIS.xlsx")
-    nis.load_workbook("/home/rnebot/Dropbox/nis-backend/backend_tests/z_input_files/v2/Netherlandsv1ToNISHierarchy2.xlsx")
-    issues = nis.submit()
-    issues = nis.solve()
-    tmp = nis.query_available_datasets()
-    print(tmp)
-    nis.get_results([tmp[0]["type"], tmp[0]["name"]])
+    for example in examples:
+        nis.open_session()
+        nis.reset_commands()
+        nis.load_workbook(example[0])
+        issues = nis.submit()
+        if example[1]:
+            issues2 = nis.solve()
+        tmp = nis.query_available_datasets()
+        print(tmp)
+        d = nis.get_results([(tmp[0]["type"], tmp[0]["name"])])
+        print(d)
 
