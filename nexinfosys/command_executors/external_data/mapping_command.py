@@ -1,4 +1,6 @@
 import json
+import logging
+
 from anytree import Node
 
 from nexinfosys.model_services import IExecutableCommand, get_case_study_registry_objects
@@ -100,7 +102,7 @@ def map_codelists(src, dst, corresp, dst_tree=False) -> (list, set):
                 assign(t[0], t[1])
 
     for k in sorted(unmapped):
-        print("Unmapped: " + k)
+        logging.debug("Unmapped: " + k)
     # for k in sorted(r):
     #     print(k+" -> "+r[k])
 

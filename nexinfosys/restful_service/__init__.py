@@ -1,3 +1,5 @@
+import logging
+
 from flask import Flask
 
 from nexinfosys import initialize_configuration
@@ -15,7 +17,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Initialize configuration
 initialize_configuration()
 app.config.from_envvar('MAGIC_NIS_SERVICE_CONFIG_FILE')
-print(f"DB_CONNECTION_STRING: {app.config['DB_CONNECTION_STRING']}\n----------------------")
 
 
 def get_results_in_session(isess: "InteractiveSession"):

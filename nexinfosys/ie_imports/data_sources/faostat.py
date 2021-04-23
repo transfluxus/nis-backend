@@ -319,13 +319,13 @@ class FAOSTAT(IDataSourceManager):  # FAOStat (not AquaStat)
                 new_file = datasets_directory + "/" + fname
                 if not os.path.exists(new_file):
                     cmd = "/usr/bin/unzip -p \"" + fi + "\" \"" + fname + "\" > \"" + new_file + "\""
-                    print(cmd)
+                    logging.debug(cmd)
                     subprocess.call(cmd, shell=True)
                 fi = new_file
                 tmp = pd.read_csv(fi, nrows=5, encoding="cp1252")
             return tmp, fi
 
-        print("Processing "+dataset_row["Label"]+" dataset ...")
+        logging.debug("Processing "+dataset_row["Label"]+" dataset ...")
 
         # pd.DataFrame (first rows of the dataset) + name of file to be read
         tmp, file = get_file_sample(file)
@@ -378,8 +378,7 @@ class FAOSTAT(IDataSourceManager):  # FAOStat (not AquaStat)
         zip_file = ZipFile(file, "r")
         fname = zip_file.namelist()[0]
         for data in pd.read_csv(zip_file.open(fname), chunksize=100000, encoding="cp1252"):
-            logger.debug(f"Chunk: {count2+1}")
-            print("Chunk "+str(count2+1))
+            logging.debug(f"Chunk: {count2+1}")
             if add_year_code_column:
                 data["Year Code"] = data["Year"]
             # For each Dimension, collect DISTINCT values
@@ -489,7 +488,7 @@ def elaborate_dimensions_and_categories_dataframes(dictionary_file, files_direct
             new_file = files_directory + "/" + fname
             if not os.path.exists(new_file):
                 cmd = "/usr/bin/unzip -p \""+fi+"\" \""+fname+"\" > \""+new_file+"\""
-                print(cmd)
+                logging.debug(cmd)
                 subprocess.call(cmd, shell=True)
             fi = new_file
             tmp = pd.read_csv(fi, nrows=5, encoding="cp1252")
@@ -512,11 +511,11 @@ def elaborate_dimensions_and_categories_dataframes(dictionary_file, files_direct
 
     for f in glob.glob(pattern):
         if not os.path.basename(f).startswith(f_prefixes):
-            print(f + " not registered")
+            logging.debug(f + " not registered")
             nf.append(f)
 
     for f in f_prefixes:
-        print("Processing "+f+" dataset ...")
+        logging.debug("Processing "+f+" dataset ...")
 
         # pd.DataFrame (first rows of the dataset) + name of file to be read
         tmp, file = get_file_sample(f)
@@ -553,7 +552,7 @@ def elaborate_dimensions_and_categories_dataframes(dictionary_file, files_direct
         sets_dict = {}
         count2 = 0
         for data in pd.read_csv(file, chunksize=10000, encoding="cp1252"):
-            print("Chunk "+str(count2+1))
+            logging.debug("Chunk "+str(count2+1))
             for c in data.columns:
                 if c.upper() not in ["VALUE"]:
                     if c not in sets_dict:

@@ -1523,7 +1523,7 @@ def replace_string_from_dictionary(s: str, d: Dict[str, str]) -> str:
     :return: a string with replacements applied
     """
     for k, v in sorted(d.items(), key=lambda item: len(item[1])):
-        print(v)
+        logging.debug(v)
         s = re.sub(r"\b" + k + r"\b", v, s)
     return s
 
@@ -1740,7 +1740,7 @@ def get_interfaces_and_weights_from_expression(exp: Union[ArithmeticOperand, Ari
             if is_interface(exp.name):
                 return exp.name, 1.0
             else:
-                print(f"Operand not interface: {exp.name}")
+                logging.debug(f"Operand not interface: {exp.name}")
         elif exp.operator == ArithmeticOperator.MUL:
             interfaces_list: List[Tuple[str, float]] = []
             weight: float = 1.0
@@ -1754,9 +1754,9 @@ def get_interfaces_and_weights_from_expression(exp: Union[ArithmeticOperand, Ari
             if len(interfaces_list) == 1:
                 return interfaces_list[0][0], interfaces_list[0][1] * weight
             elif len(interfaces_list) > 1:
-                print(f"Error multiple interfaces: {interfaces_list}")
+                logging.debug(f"Error multiple interfaces: {interfaces_list}")
         else:
-            print(f"Error operator not allowed: {exp.operator}")
+            logging.debug(f"Error operator not allowed: {exp.operator}")
 
         return None
 

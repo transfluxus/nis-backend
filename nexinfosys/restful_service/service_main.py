@@ -36,7 +36,7 @@ from nexinfosys.command_generators.parser_spreadsheet_utils import rewrite_xlsx_
 
 from nexinfosys.ie_exports.reference_of_commands import obtain_commands_help
 from nexinfosys.command_definitions import commands
-from nexinfosys.command_field_definitions import command_fields
+from nexinfosys.command_field_definitions import command_fields, _command_field_names
 from nexinfosys.command_generators import Issue, IType
 from nexinfosys.command_generators.parser_field_parsers import string_to_ast, simple_ident
 from nexinfosys.common.helper import generate_json, gzipped, str2bool, \
@@ -55,8 +55,6 @@ from nexinfosys.model_services.workspace import InteractiveSession, CreateNew, R
 from nexinfosys.restful_service import nis_api_base, nis_client_base, nis_external_client_base
 from nexinfosys.models import log_level
 from nexinfosys.serialization import serialize, deserialize, serialize_state, deserialize_state
-from nexinfosys.ie_exports.flows_graph import BasicQuery
-from nexinfosys.ie_exports.processors_graph import construct_processors_graph_2
 
 
 # #####################################################################################################################
@@ -66,12 +64,12 @@ from nexinfosys.ie_exports.processors_graph import construct_processors_graph_2
 def printNProcessors(s, state):
     from nexinfosys.models.musiasem_concepts import Processor
     glb_idx, p_sets, hh, datasets, mappings = get_case_study_registry_objects(state)
-    print("--------------------------------------------------------")
-    print(f"--- {s} -----------------------------------------")
-    print(f"Number of processors: {len(glb_idx.get(Processor.partial_key()))}")
-    print("--------------------------------------------------------")
-    print("--------------------------------------------------------")
-    print("--------------------------------------------------------")
+    logging.debug("--------------------------------------------------------")
+    logging.debug(f"--- {s} -----------------------------------------")
+    logging.debug(f"Number of processors: {len(glb_idx.get(Processor.partial_key()))}")
+    logging.debug("--------------------------------------------------------")
+    logging.debug("--------------------------------------------------------")
+    logging.debug("--------------------------------------------------------")
 
 
 def construct_session_persistence_backend():
@@ -94,8 +92,8 @@ def construct_session_persistence_backend():
                 d["SESSION_REDIS"] = rs2
                 # d["PERMANENT_SESSION_LIFETIME"] = 3600
             except ImportError as e:
-                print("Package 'redislite' not found. Please, either change REDIS_HOST configuration variable to "
-                      "'filesystem' or 'redis', or execute 'pip install redislite' and retry")
+                logging.error("Package 'redislite' not found. Please, either change REDIS_HOST configuration variable "
+                              "to 'filesystem' or 'redis', or execute 'pip install redislite' and retry")
                 sys.exit(1)
         elif r_host.startswith("filesystem:"):
             d["SESSION_TYPE"] = "filesystem"
@@ -110,14 +108,14 @@ def construct_session_persistence_backend():
             # d["PERMANENT_SESSION_LIFETIME"] = 3600
         if rs2:
             try:
-                print("Trying connection to REDIS '"+r_host+"'")
+                logging.debug("Trying connection to REDIS '"+r_host+"'")
                 rs2.ping()
-                print("Connected to REDIS instance '"+r_host+"'")
+                logging.debug("Connected to REDIS instance '"+r_host+"'")
             except:
-                print("REDIS instance '"+r_host+"' not reachable, exiting now!")
+                logging.debug("REDIS instance '"+r_host+"' not reachable, exiting now!")
                 sys.exit(1)
         elif "SESSION_TYPE" not in d:
-            print("No session persistence backend configured, exiting now!")
+            logging.error("No session persistence backend configured, exiting now!")
             sys.exit(1)
     return d
 
@@ -125,6 +123,12 @@ def construct_session_persistence_backend():
 # #####################################################################################################################
 # >>>> THE INITIALIZATION CODE <<<<
 #
+
+logger = logging.getLogger(__name__)
+logging.getLogger('flask_cors').level = logging.DEBUG
+app.logger.setLevel(log_level)
+logger.setLevel(log_level)
+logging.basicConfig(level=logging.DEBUG)
 
 lock = NamedAtomicLock("nis-backend-lock")
 lock.acquire()
@@ -149,10 +153,9 @@ CORS(app,                    # CORS
      supports_credentials=True
      )
 
-logger = logging.getLogger(__name__)
-logging.getLogger('flask_cors').level = logging.DEBUG
-app.logger.setLevel(log_level)
-logger.setLevel(log_level)
+logging.debug(f"DB_CONNECTION_STRING: {app.config['DB_CONNECTION_STRING']}\n----------------------")
+logging.debug(f'Assuming {os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"]} as configuration file')
+logging.debug(f'command_field_names = {_command_field_names}')
 
 # #####################################################################################################################
 # >>>> UTILITY FUNCTIONS <<<<
@@ -187,10 +190,10 @@ def build_json_response(obj, status=200):
 
 
 def serialize_isession_and_close_db_session(sess: InteractiveSession):
-    print("serialize_isession IN")
+    logging.debug("serialize_isession IN")
     # Serialize state
     if isinstance(sess._state, str):
-        print("Str")
+        logging.debug("Str")
     sess._state = serialize_state(sess._state)  # TODO New
 
     # Serialize WorkSession apart, if it exists
@@ -208,7 +211,7 @@ def serialize_isession_and_close_db_session(sess: InteractiveSession):
             sess._reproducible_session = None
         else:
             # TODO New code. Test it
-            print("Reproducible session corrupted. Closing Reproducible session")
+            logging.debug("Reproducible session corrupted. Closing Reproducible session")
             if "rsession" in flask_session:
                 del flask_session["rsession"]
     else:
@@ -229,11 +232,11 @@ def serialize_isession_and_close_db_session(sess: InteractiveSession):
     sess.set_sf(tmp)
     sess.close_db_session()
 
-    print("serialize_isession OUT")
+    logging.debug("serialize_isession OUT")
 
 
 def deserialize_isession_and_prepare_db_session(return_error_response_if_none=True) -> InteractiveSession:
-    print("deserialize_issesion IN")
+    logging.debug("deserialize_issesion IN")
     if "isession" in flask_session:
         s = flask_session["isession"]
         try:
@@ -255,7 +258,7 @@ def deserialize_isession_and_prepare_db_session(return_error_response_if_none=Tr
     else:
         sess = None
 
-    print("deserialize_issesion OUT")
+    logging.debug("deserialize_issesion OUT")
 
     if not sess and return_error_response_if_none:
         return NO_ISESS_RESPONSE
@@ -277,7 +280,6 @@ def is_testing_enabled():
 NO_ISESS_RESPONSE = build_json_response({"error": "No interactive session active. Please, open one first ('POST /isession')"}, 400)
 
 # >>>> SPECIAL FUNCTIONS <<<<
-
 
 # @app.before_request
 # def print_headers():
@@ -364,7 +366,7 @@ def send_web_client_file(path=None):
     if not path or path == "":
         path = "index.html"
 
-    print(f"PATH: {path}")
+    logging.debug(f"NIS (as Web Server), serving static file with path: {path}")
 
     if "config.json" in path:
         return build_json_response(dict(url=f"{request.host_url[:-1]}"), 200)
@@ -482,7 +484,7 @@ def get_interactive_session():
     else:
         st = "isession_closed"
 
-    print("Get Isession: "+st)
+    logging.debug("Get Isession: "+st)
     return build_json_response(st, 200)
 
 
@@ -1147,11 +1149,11 @@ def copy_resource_to_webdav():
         if nexinfosys.get_global_configuration_variable("SELF_SCHEMA") else request.host_url
     import requests
     requested_resource = f"{self_schema}{source_url[1:]}"
-    print(f"REENTRANT REQUEST: {requested_resource}")
+    logging.debug(f"REENTRANT REQUEST: {requested_resource}")
     r = requests.get(requested_resource, cookies=request.cookies, verify=False)
     # WRITE
     wv_upload_file(io.BytesIO(r.content), target_url)
-    print(f"REQUESTED RESOURCE UPLOADED TO NEXTCLOUD at {target_url}")
+    logging.debug(f"REQUESTED RESOURCE UPLOADED TO NEXTCLOUD at {target_url}")
 
     return build_json_response([], 204)
 
@@ -1621,7 +1623,7 @@ def convert_issues(iss_lst):
 def reproducible_session_append_command_generator():  # Receive a command_executors generator, like a Spreadsheet file, an R script, or a full JSON command_executors list (or other)
 
     import time
-    print("### SUBMISSION STARTS ###")
+    logging.debug("### SUBMISSION STARTS ###")
     start = time.time()
 
     # Recover InteractiveSession
@@ -1694,7 +1696,7 @@ def reproducible_session_append_command_generator():  # Receive a command_execut
         r = build_json_response({"error": "A reproducible session must be open in order to submit a generator"}, 400)
 
     endt = time.time()
-    print(F"### SUBMISSION FINISHED: {endt-start} ###")
+    logging.debug(F"### SUBMISSION FINISHED: {endt-start} ###")
 
     return r
 
@@ -3075,8 +3077,8 @@ def download_external_xlsx():  # From the URL of an external XLSX, obtain it and
         xl = openpyxl.load_workbook(data, data_only=True)
         rewrite_xlsx_file(xl, copy_style=False)
     except Exception as e:
-        print("Exception rewriting XLSX. Is openpyxl==2.4.8 installed?. Check with 'pip freeze | grep openpyxl'. "
-              "If that is the case, fix with 'pip install openpyxl==2.4.8'")
+        logging.error("Exception rewriting XLSX. Is openpyxl==2.4.8 installed?. Check with 'pip freeze | grep "
+                      "openpyxl'. If that is the case, fix with 'pip install openpyxl==2.4.8'")
         raise e
 
     data = save_virtual_workbook(xl)

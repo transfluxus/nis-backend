@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy.orm import class_mapper
 import pandas as pd
 import numpy as np
@@ -137,7 +139,7 @@ def serialize_state(state: State):
                json.dumps({i[0]: str(i[1]) for i in df.dtypes.to_dict().items()})
         # list(df.index.names), df.to_dict()
 
-    print("  serialize_state IN")
+    logging.debug("  serialize_state IN")
 
     import copy
     # "_datasets"
@@ -176,9 +178,9 @@ def serialize_state(state: State):
             datasets[ds_name] = lst2
         state2.set("_datasets", datasets, ns)
     tmp = serialize_from_object(state2)  # <<<<<<<< SLOWEST !!!! (when debugging)
-    print("  serialize_state length: "+str(len(tmp))+" OUT")
+    logging.debug("  serialize_state length: "+str(len(tmp))+" OUT")
     tmp = blosc.compress(bytearray(tmp, "utf-8"), cname="zlib", typesize=8)
-    print("  serialize_state compressed length: "+str(len(tmp))+" OUT")
+    logging.debug("  serialize_state compressed length: "+str(len(tmp))+" OUT")
 
     return tmp
 
@@ -202,7 +204,7 @@ def deserialize_state(st: str, state_version: int = MODEL_VERSION):
         else:
             return pd.DataFrame()  # Return empty pd.Dataframe
 
-    print("  deserialize_state")
+    logging.debug("  deserialize_state")
     if isinstance(st, bytes):
         st = blosc.decompress(st).decode("utf-8")
     if isinstance(st, str):
@@ -223,7 +225,7 @@ def deserialize_state(st: str, state_version: int = MODEL_VERSION):
             state.set("_glb_idx", glb_idx)
         glb_idx, p_sets, hh, datasets, mappings = get_case_study_registry_objects(state, ns)
         if isinstance(glb_idx, dict):
-            print("glb_idx is DICT, after deserialization!!!")
+            logging.debug("glb_idx is DICT, after deserialization!!!")
         # TODO Deserialize DataFrames
         # In datasets
         for ds_name in datasets:

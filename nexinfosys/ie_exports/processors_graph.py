@@ -1,4 +1,5 @@
 import io
+import logging
 
 import networkx as nx
 
@@ -135,7 +136,7 @@ def construct_processors_graph_2(state: State, query: IQueryObjects, filt: Union
         vis_edges = []
         for node in processors_graph.nodes(data=True):
             d2 = node[1]
-            print(node)
+            logging.debug(node)
             if "uname" not in d2:
                 continue
             d = dict(id=node[1]["id"], label=node[1]["uname"])
@@ -281,4 +282,4 @@ if __name__ == '__main__':
     state = deserialize_state(s)
     # Create a Query and execute a query
     query = BasicQuery(state)
-    print(construct_processors_graph(state, query, None))
+    logging.debug(construct_processors_graph(state, query, None))

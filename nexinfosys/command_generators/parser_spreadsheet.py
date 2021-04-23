@@ -1,4 +1,5 @@
 import io
+import logging
 import mimetypes
 import urllib
 from typing import List, Optional
@@ -155,7 +156,7 @@ def commands_generator_from_ooxml_file(input, state, sublist, stack) -> nexinfos
                 for r in c_content["items"]:
                     generator_type, file2, sublist2 = handle_import_commands(r)
                     yield from commands_container_parser_factory(generator_type, None, file2, state, sublist=sublist2, stack=stack)
-                    print("Done")
+                    logging.debug("IMPORT_COMMANDS done")
 
         elif c_type == "mapping":
             groups = cmd.regex.search(name).groups()
@@ -227,7 +228,7 @@ def commands_generator_from_ooxml_file(input, state, sublist, stack) -> nexinfos
                     total_issues.append(issue)
 
         else:
-            print(issues)  # Convenient for debugging purposes
+            logging.debug(issues)  # Convenient for debugging purposes
             cmd = None  # cmd, _ = create_command(c_type, c_label, {}, sh_name)
 
         yield cmd, total_issues

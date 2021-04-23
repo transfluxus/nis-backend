@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 from typing import Optional, List, Dict, Any, Union, Tuple, Set
 
@@ -441,7 +442,7 @@ def parse_cmd_row_dict(cmd_name: str, row: Dict[str, str], already_parsed_fields
     from nexinfosys.command_field_definitions import command_fields
     field_defs_dict = {f.name: f for f in command_fields[cmd_name]}
     mandatory_not_found = set([c.name for c in command_fields[cmd_name] if c.mandatory and isinstance(c.mandatory, bool)])
-    print(mandatory_not_found)
+    logging.debug(mandatory_not_found)
     complex_mandatory_cols = [c for c in command_fields[cmd_name] if isinstance(c.mandatory, str)]
     may_append = True
     complex_row = False

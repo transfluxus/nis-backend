@@ -15,6 +15,8 @@ Persistent store, in database
 
 """
 import datetime
+import logging
+
 from sqlalchemy import Column, Boolean, Integer, String, Unicode, DateTime, LargeBinary, ForeignKey
 from copy import deepcopy
 from sqlalchemy.ext.declarative import declarative_base
@@ -105,7 +107,7 @@ class BaseMixin(object):
 
     def __deepcopy__(self, memo):
         cls = self.__class__
-        print(str(cls))
+        logging.debug(str(cls))
         result = cls.__new__(cls)
         memo[id(self)] = result
         for k in class_mapper(cls).iterate_properties:

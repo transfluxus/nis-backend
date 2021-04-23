@@ -1,4 +1,5 @@
 import json
+import logging
 from collections import OrderedDict
 
 import pandas as pd
@@ -242,7 +243,7 @@ class ETLExternalDatasetCommand(IExecutableCommand):
                 # Print NaN values for each value column
                 for v in set(values):
                     cnt = df[v].isnull().sum()
-                    print("NA count for col '"+v+"': "+str(cnt)+" of "+str(df.shape[0]))
+                    logging.debug("NA count for col '"+v+"': "+str(cnt)+" of "+str(df.shape[0]))
                 # AGGREGATE !!
                 df2 = groups.agg(d)
 

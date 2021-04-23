@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import sys
 
 import pandas as pd
@@ -112,12 +113,13 @@ def initialize_databases():
     recreate_db = False
     if nexinfosys.get_global_configuration_variable("DB_CONNECTION_STRING"):
         db_connection_string = nexinfosys.get_global_configuration_variable("DB_CONNECTION_STRING")
-        print("Connecting to metadata server")
-        print(db_connection_string)
-        print("-----------------------------")
+        echo_sql = nexinfosys.get_global_configuration_variable("SQL_ECHO", False)
+        logging.debug("Connecting to metadata server")
+        logging.debug(db_connection_string)
+        logging.debug("-----------------------------")
         if db_connection_string.startswith("sqlite://"):
             nexinfosys.engine = sqlalchemy.create_engine(db_connection_string,
-                                                         echo=True,
+                                                         echo=echo_sql,
                                                          connect_args={'check_same_thread': False},
                                                          poolclass=StaticPool)
         else:
@@ -138,23 +140,23 @@ def initialize_databases():
         # Load base tables
         initialize_database_data()
     else:
-        print("No database connection defined (DB_CONNECTION_STRING), exiting now!")
+        logging.error("No database connection defined (DB_CONNECTION_STRING), exiting now!")
         sys.exit(1)
 
     if nexinfosys.get_global_configuration_variable("DATA_CONNECTION_STRING"):
         data_connection_string = nexinfosys.get_global_configuration_variable("DATA_CONNECTION_STRING")
-        print("Connecting to data server")
+        logging.debug("Connecting to data server")
         if data_connection_string.startswith("monetdb"):
             nexinfosys.data_engine = create_monet_database_engine(data_connection_string, "magic_data")
         elif data_connection_string.startswith("sqlite://"):
             nexinfosys.data_engine = sqlalchemy.create_engine(data_connection_string,
-                                                              echo=True,
+                                                              echo=echo_sql,
                                                               connect_args={'check_same_thread': False},
                                                               poolclass=StaticPool)
         else:
             nexinfosys.data_engine = create_pg_database_engine(data_connection_string, "magic_data", recreate_db=recreate_db)
     else:
-        print("No data connection defined (DATA_CONNECTION_STRING), exiting now!")
+        logging.error("No data connection defined (DATA_CONNECTION_STRING), exiting now!")
         sys.exit(1)
 
 
@@ -263,7 +265,7 @@ def get_dataset_from_state(state: State, name: str, extension: str, labels_enabl
         ds2 = ds.data
         # Labels
         if labels_enabled:
-            print("Preparing Dataset labels")
+            logging.debug("Preparing Dataset labels")
             ds2 = add_label_columns_to_dataframe(name, ds2, glb_idx)
 
         if isinstance(ds2.index, (pd.Int64Index, pd.core.indexes.range.RangeIndex)):
@@ -311,7 +313,7 @@ def get_dataset_from_state(state: State, name: str, extension: str, labels_enabl
             # wb.new_sheet(name, data=data)
             # wr = Writer.Writer(wb)
             # wr.save(output)
-            print("Generating Excel")
+            logging.debug("Generating Excel")
             ds2.to_excel(output, sheet_name=name, index=False)  # , engine="xlsxwriter")
             return output.getvalue(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", True
         else:

@@ -1,4 +1,5 @@
 import gzip
+import logging
 
 import os
 import re
@@ -24,7 +25,7 @@ def create_estat_request():
     # EuroStat datasets
     if get_global_configuration_variable('CACHE_FILE_LOCATION'):
         cache_name = get_global_configuration_variable('CACHE_FILE_LOCATION')
-        print("USER: "+getpass.getuser())
+        logging.debug(f"USER: {getpass.getuser()}, creating cache for Eurostat requests")
         if not os.path.isdir(cache_name):
             os.makedirs(cache_name)
     else:

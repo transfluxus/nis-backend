@@ -418,4 +418,4 @@ def get_command_fields_from_class(execution_class: Type[IExecutableCommand]) -> 
 #         for name in field.allowed_names:
 #             command_field_names[name] = field.name
 _command_field_names = {name: f.name for fields in command_fields.values() for f in fields for name in f.allowed_names}
-print(f'command_field_names = {_command_field_names}')
+

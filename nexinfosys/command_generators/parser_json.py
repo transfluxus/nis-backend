@@ -1,4 +1,6 @@
 import json
+import logging
+
 from nexinfosys.command_executors import create_command
 
 
@@ -19,7 +21,7 @@ def commands_generator_from_native_json(input, state, sublist, stack):
                 n = d["label"]
             else:
                 n = None
-            print(f"{d['command']} build and yield")
+            logging.debug(f"{d['command']} build and yield")
             yield create_command(d["command"], n, d["content"])
 
     json_commands = json.loads(input)  # Convert JSON string to dictionary

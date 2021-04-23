@@ -184,9 +184,9 @@ def execute_command_container_file(state, generator_type, file_type: str, file):
         if len(issues) > 0:
             new_issues, errors_exist = transform_issues(issues, cmd, cmd_number)
             c = "\n"
-            print(f"Issues:\n{c.join([i.description for i in new_issues])}")
+            logging.debug(f"Issues:\n{c.join([i.description for i in new_issues])}")
         else:
-            print(f"{type(cmd)} {cmd._source_block_name if hasattr(cmd, '_source_block_name') else ''}; # syntax issues: {len(issues)}")
+            logging.debug(f"{type(cmd)} {cmd._source_block_name if hasattr(cmd, '_source_block_name') else ''}; # syntax issues: {len(issues)}")
         cmd_number += 1  # Command counter
 
         errors_exist = False
@@ -957,7 +957,7 @@ class ReproducibleSession:
 
         # If it was called from the REST API, assure that the version has a creation date (it should not happen)
         if from_web_service and not vs.creation_instant:
-            print("Late setup of version creation date")
+            logging.debug("Late setup of version creation date")
             vs.creation_instant = datetime.datetime.utcnow()
 
         # Commit DB session
@@ -1050,9 +1050,9 @@ def execute_file_return_issues(file_name, generator_type):
     issues, output = isess.register_andor_execute_command_generator(generator_type, content_type, buffer, False, True)
 
     for idx, issue in enumerate(issues):
-        print(f"Issue {idx+1}/{len(issues)} = {issue}")
+        logging.debug(f"Issue {idx+1}/{len(issues)} = {issue}")
 
-    print(f"Output = {output}")
+    logging.debug(f"Output = {output}")
 
     isess.close_reproducible_session()
     isess.close_db_session()

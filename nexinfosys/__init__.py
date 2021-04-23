@@ -131,6 +131,7 @@ def prepare_default_configuration(create_directories):
 
     # Default configuration
     return f"""{os.linesep.join([f'{k}="{v}"' for k, v in dirs.items()])}
+SQL_ECHO=True
 # Flask Session (server side session)
 REDIS_HOST="filesystem:local_session"
 TESTING="True"
@@ -156,7 +157,6 @@ def initialize_configuration():
             found = False
             for f in [file_name]:  # f"{nexinfosys.__path__[0]}/restful_service/nis_local_dist.conf"
                 if os.path.isfile(f):
-                    print(f"Assuming {f} as configuration file")
                     found = True
                     os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"] = f
                     break
@@ -166,10 +166,6 @@ def initialize_configuration():
                 with open(file_name, "wt") as f:
                     f.write(cfg)
                 os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"] = file_name
-
-        print("-----------------------------------------------")
-        print(f'Configuration file at: {os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"]}')
-        print("-----------------------------------------------")
 
     except Exception as e:
         print("MAGIC_NIS_SERVICE_CONFIG_FILE environment variable not defined!")

@@ -1,4 +1,5 @@
 import json
+import logging
 
 from typing import Dict, Any
 
@@ -35,7 +36,7 @@ class InterfaceTypesCommand(BasicCommand):
         ft_opposite_processor_type = field_values.get("opposite_processor_type")
         ft_level = field_values.get("level")
         ft_attributes = field_values.get("attributes", {})
-        print(str(type(ft_attributes)))
+        logging.debug(str(type(ft_attributes)))
         if ft_attributes:
             try:
                 ft_attributes = dictionary_from_key_value_list(ft_attributes, self._glb_idx)

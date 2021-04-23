@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Any, Optional, Sequence, List, NoReturn
 
 from pint import DimensionalityError
@@ -55,7 +56,7 @@ class InterfacesAndQualifiedQuantitiesCommand(BasicCommand):
         interfaces: Sequence[Factor] = self._glb_idx.get(Factor.partial_key(processor=processor, name=f_interface_name))
         if len(interfaces) == 1:
             interface = interfaces[0]
-            print(f"DEBUG - Interface '{interface.name}' found")
+            logging.debug(f"Interface '{interface.name}' found")
             interface_type = interface.taxon
             if f_interface_type_name and not strcmp(interface_type.name, f_interface_type_name):
                 self._add_issue(IType.WARNING, f"The existing Interface '{interface.name}' has the InterfaceType "
@@ -148,7 +149,7 @@ class InterfacesAndQualifiedQuantitiesCommand(BasicCommand):
                                                  tags=None,
                                                  attributes=attributes)
             self._glb_idx.put(interface.key(), interface)
-            print(f"DEBUG - Interface '{interface.name}' created")
+            logging.debug(f"Interface '{interface.name}' created")
         elif not interface.compare_attributes(attributes):
             initial = ', '.join([f"{k}: {interface.get_attribute(k)}" for k in attributes])
             new = ', '.join([f"{k}: {attributes[k]}" for k in attributes])

@@ -1,4 +1,5 @@
 import json
+import logging
 from collections import OrderedDict
 import traceback
 import numpy as np
@@ -292,7 +293,7 @@ class DatasetQryCommand(IExecutableCommand):
                     # Print NaN values for each value column
                     for value in set(values):
                         cnt = df[value].isnull().sum()
-                        print("NA count for col '"+value+"': "+str(cnt)+" of "+str(df.shape[0]))
+                        logging.debug("NA count for col '"+value+"': "+str(cnt)+" of "+str(df.shape[0]))
                     # AGGREGATE !!
                     df2 = groups.agg(d)
 

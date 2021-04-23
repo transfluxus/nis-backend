@@ -515,7 +515,7 @@ def import_csv_into_database(file_name, engine, table_name, map, types):
         data.to_sql(table_name, engine, if_exists='append')
         # Just update the count of rows and print it
         count += data.shape[0]
-        print(str(count))
+        logging.debug(str(count))
 
 
 db_connection_string = "postgresql://postgres:postgres@localhost:5432/UNTrade"

@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import io
+import logging
 import pickle
 import os.path
 from googleapiclient.discovery import build
@@ -22,7 +23,7 @@ def export_xlsx_to_memory(service, file_id):
         done = False
         while done is False:
             status, done = downloader.next_chunk()
-            print("Download %d%%." % int(status.progress() * 100))
+            logging.debug("Download %d%%." % int(status.progress() * 100))
         return fh
 
     try:

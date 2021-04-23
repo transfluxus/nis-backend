@@ -1,4 +1,5 @@
 import getpass
+import logging
 import os
 import tempfile
 import zipfile
@@ -88,7 +89,7 @@ def get_fadn_directory():
     # EuroStat datasets
     if get_global_configuration_variable('FADN_FILES_LOCATION'):
         dir_name = get_global_configuration_variable('FADN_FILES_LOCATION')
-        print("USER: "+getpass.getuser())
+        logging.debug(f"USER: {getpass.getuser()}, creating dir for FADN files")
     else:
         dir_name = tempfile.gettempdir() + "/fadn_datasets"
 
@@ -99,8 +100,8 @@ def get_fadn_directory():
 
 
 def download(url, file):
-    print("download URL: "+url)
-    print("file: "+file)
+    logging.debug("download URL: "+url)
+    logging.debug("file: "+file)
     if not os.path.isfile(file):
         r = requests.get(url, stream=True)
         if r.status_code == 200:
@@ -139,7 +140,7 @@ def load_measures_dictionary(directory):
         add = True
         if unit1 and unit2:
             if unit1 != unit2:
-                print("Different: "+df.iloc[r, 0]+"; "+formula)
+                logging.debug("Different: "+df.iloc[r, 0]+"; "+formula)
                 add = False
 
         if add:

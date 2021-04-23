@@ -25,6 +25,7 @@ Before the elaboration of flow graphs, several preparatory steps:
 * Observers (different versions). Take average always
 
 """
+import logging
 import traceback
 from collections import defaultdict
 from copy import deepcopy
@@ -545,11 +546,11 @@ def compute_graph_results(comp_graph: ComputationGraph,
     compute_nodes = comp_graph.nodes_not_in_container(graph_params)
 
     if len(compute_nodes) == 0:
-        print("All nodes have a value. Nothing to solve.")
+        logging.debug("All nodes have a value. Nothing to solve.")
         return {}
 
-    print(f"****** NODES: {comp_graph.nodes}")
-    print(f"****** UNKNOWN NODES: {compute_nodes}")
+    logging.debug(f"****** NODES: {comp_graph.nodes}")
+    logging.debug(f"****** UNKNOWN NODES: {compute_nodes}")
 
     new_computed_nodes: Set[InterfaceNode] = {k for k in existing_results if k not in previous_known_nodes}
     conflicts = comp_graph.compute_conflicts(new_computed_nodes, previous_known_nodes)
@@ -585,7 +586,7 @@ def create_interface_edges(edges: List[Tuple[Factor, Factor, Optional[str]]]) \
         src_node = InterfaceNode(src)
         dst_node = InterfaceNode(dst)
         if "Archetype" in [src.processor.instance_or_archetype, dst.processor.instance_or_archetype]:
-            print(f"WARNING: excluding relation from '{src_node}' to '{dst_node}' because of Archetype processor")
+            logging.warning(f"Excluding relation from '{src_node}' to '{dst_node}' because of Archetype processor")
         else:
             yield src_node, dst_node, dict(weight=weight)
 
@@ -641,7 +642,7 @@ def create_scale_change_relations_and_update_flow_relations(relations_flow: nx.D
         if "Archetype" in [src.processor.instance_or_archetype,
                            dst.processor.instance_or_archetype,
                            bck.processor.instance_or_archetype if bck else None]:
-            print(f"WARNING: excluding relation from '{source_node}' to '{dest_node}' "
+            logging.warning(f"Excluding relation from '{source_node}' to '{dest_node}' "
                   f"and back to '{back_node}' because of Archetype processor")
             continue
 
@@ -830,7 +831,7 @@ def create_computation_graph_from_flows(relations_flow: nx.DiGraph, relations_sc
     comp_graph_flow, issues = flow_graph.get_computation_graph(relations_scale)
 
     for issue in issues:
-        print(issue)
+        logging.debug(issue)
 
     error_issues = [e.description for e in issues if e.itype == IType.ERROR]
     if len(error_issues) > 0:
@@ -1218,7 +1219,7 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
         total_results: ResultDict = {}
 
         for scenario_name, scenario_params in problem_statement.scenarios.items():  # type: str, Dict[str, Any]
-            print(f"********************* SCENARIO: {scenario_name}")
+            logging.debug(f"********************* SCENARIO: {scenario_name}")
 
             scenario_state = State(evaluate_parameters_for_scenario(global_parameters, scenario_params))
 
@@ -1237,7 +1238,7 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                 missing_value_policies.append(MissingValueResolutionPolicy.UseZero)
 
             for time_period, absolute_observations in time_absolute_observations.items():
-                print(f"********************* TIME PERIOD: {time_period}")
+                logging.debug(f"********************* TIME PERIOD: {time_period}")
 
                 total_taken_results: NodeFloatComputedDict = {}
                 total_dismissed_results: NodeFloatComputedDict = {}
@@ -1276,7 +1277,7 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
 
                         # Iterate while the number of results is increasing
                         while len(results) > previous_len_results:
-                            print(f"********************* Solving iteration: {iteration_number}")
+                            logging.debug(f"********************* Solving iteration: {iteration_number}")
                             previous_len_results = len(results)
 
                             for pi in processing_items:
@@ -1834,7 +1835,7 @@ def calculate_local_scalar_indicators(indicators: List[Indicator],
                 orientation = row[5]  # Orientation
                 iface_orientation = iface + "_" + orientation
                 if iface_orientation in d:
-                    print(f"{iface_orientation} found to already exist!")
+                    logging.debug(f"{iface_orientation} found to already exist!")
                 d[iface_orientation] = sdf["Value"]
                 if iface not in d:
                     d[iface] = sdf["Value"]  # First appearance allowed, insert, others ignored
@@ -1955,7 +1956,7 @@ def calculate_global_scalar_indicators(indicators: List[Indicator],
             if val is not None:
                 new_df_rows_idx.append(t)  # (scenario, period)
                 new_df_rows_data.append((indicator.name, val, None))
-        print(issues)
+        logging.debug(issues)
         # Construct pd.DataFrame with the result of the scalar indicator calculation
         df2 = pd.DataFrame(data=new_df_rows_data,
                            index=pd.MultiIndex.from_tuples(new_df_rows_idx, names=idx_names),
@@ -2234,7 +2235,7 @@ def get_eum_dataset(dataframe: pd.DataFrame) -> "Dataset":
                             "HA": "HA (h)",
                             "LU": "LU (ha)"})
 
-    print(df)
+    logging.debug(df)
 
     return get_dataset(df, "end_use_matrix", "End use matrix")
 
