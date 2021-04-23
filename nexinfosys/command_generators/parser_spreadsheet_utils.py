@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 from copy import copy
 import openpyxl
@@ -282,7 +284,7 @@ def rewrite_xlsx_file(xl, copy_style=True):
         if copy_sheet:
             tmp = copy_worksheet(xl, source)
         else:
-            print(f"Skipping copy of '{sh_name}' worksheet")
+            logging.debug(f"Skipping copy of '{sh_name}' worksheet")
         xl.remove_sheet(source)
         if copy_sheet:
             tmp.title = sh_name

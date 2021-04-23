@@ -23,6 +23,8 @@ class DatasetDefCommand(IExecutableCommand):
             dsd_dataset_name = item.get("dataset_name", None)
             dsd_dataset_data_location = item.get("dataset_data_location", None)
             dsd_concept_type = item.get("concept_type", None)
+            if dsd_concept_type.lower() == "dataset":
+                dsd_concept_type = None
             dsd_concept_name = item.get("concept_name", None)
             dsd_concept_data_type = item.get("concept_data_type", None)
             dsd_concept_domain = item.get("concept_domain", None)

@@ -1,6 +1,7 @@
 ######################################
 #  LIST OF FIELDS FOR THE COMMANDS   #
 ######################################
+import logging
 from typing import Dict, List, Type
 
 from nexinfosys import CommandField
@@ -17,7 +18,7 @@ from nexinfosys.model_services import IExecutableCommand
 from nexinfosys.models.musiasem_concepts import Processor, Factor, RelationClassType, FactorType
 
 data_types = ["Number", "Boolean", "URL", "UUID", "Datetime", "String", "UnitName", "Code", "Geo"]
-concept_types = ["Dimension", "Measure", "Attribute"]
+concept_types = ["Dimension", "Measure", "Attribute", "Dataset"]
 parameter_types = ["Number", "Code", "Boolean", "String"]
 element_types = ["Parameter", "Processor", "InterfaceType", "Interface"]
 spheres = ["Biosphere", "Technosphere"]
@@ -84,7 +85,7 @@ command_fields: Dict[str, List[CommandField]] = {
 
     "datasetdef": [
         CommandField(allowed_names=["Dataset", "DatasetName"], name="dataset_name", mandatory=True, parser=simple_ident),
-        CommandField(allowed_names=["DatasetDataLocation"], name="dataset_data_location", mandatory=True, parser=url_parser),
+        CommandField(allowed_names=["DatasetDataLocation"], name="dataset_data_location", parser=url_parser),
         CommandField(allowed_names=["ConceptType"], name="concept_type", mandatory=True, allowed_values=concept_types, parser=simple_ident),
         CommandField(allowed_names=["Concept", "ConceptName"], name="concept_name", mandatory=True, parser=simple_ident),
         CommandField(allowed_names=["ConceptDataType", "DataType"], name="concept_data_type", mandatory=True, allowed_values=data_types, parser=simple_ident),
