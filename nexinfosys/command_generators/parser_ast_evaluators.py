@@ -395,24 +395,22 @@ def ast_evaluator(exp: Dict, state: State, obj, issue_lst, evaluation_type="nume
                         mod_name, func_name = _f["full_name"].rsplit('.', 1)
                         mod = importlib.import_module(mod_name)
                         func = getattr(mod, func_name)
-                        if _f["kwargs"]:
-                            kwargs.update(_f["kwargs"])
-                        if _f["special_kwargs"]:
-                            for sp_kwarg, name in _f["special_kwargs"].items():
-                                if sp_kwarg == "PartialRetrievalDictionary":
-                                    kwargs[name] = state.get("_glb_idx")
-                                elif sp_kwarg == "ProcessorsDOM":
-                                    kwargs[name] = state.get("_processors_dom")
-                                elif sp_kwarg == "ProcessorsMap":
-                                    kwargs[name] = state.get("_processors_map")
-                                elif sp_kwarg == "DataFrameGroup":
-                                    kwargs[name] = state.get("_df_group")
-                                elif sp_kwarg == "IndicatorsDataFrameGroup":
-                                    kwargs[name] = state.get("_df_indicators_group")
-                                elif sp_kwarg == "IndicatorState":
-                                    kwargs[name] = state
-                                elif sp_kwarg == "LCIAMethods":
-                                    kwargs[name] = state.get("_lcia_methods")
+                        kwargs.update(_f["kwargs"])
+                        for sp_kwarg, name in _f.get("special_kwargs", {}).items():
+                            if sp_kwarg == "PartialRetrievalDictionary":
+                                kwargs[name] = state.get("_glb_idx")
+                            elif sp_kwarg == "ProcessorsDOM":
+                                kwargs[name] = state.get("_processors_dom")
+                            elif sp_kwarg == "ProcessorsMap":
+                                kwargs[name] = state.get("_processors_map")
+                            elif sp_kwarg == "DataFrameGroup":
+                                kwargs[name] = state.get("_df_group")
+                            elif sp_kwarg == "IndicatorsDataFrameGroup":
+                                kwargs[name] = state.get("_df_indicators_group")
+                            elif sp_kwarg == "IndicatorState":
+                                kwargs[name] = state
+                            elif sp_kwarg == "LCIAMethods":
+                                kwargs[name] = state.get("_lcia_methods")
 
                         # CALL FUNCTION!!
                         try:
