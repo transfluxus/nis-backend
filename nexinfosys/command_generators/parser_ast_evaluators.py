@@ -15,7 +15,7 @@ from nexinfosys import case_sensitive, ureg
 from pyparsing import quotedString
 
 from nexinfosys.model_services import State
-from nexinfosys.command_generators import global_functions, IType, Issue, IssueLocation
+from nexinfosys.command_generators import global_functions, IType, Issue, IssueLocation, parser_field_parsers
 from nexinfosys.command_generators.parser_field_parsers import string_to_ast, arith_boolean_expression, key_value_list, \
     simple_ident, expression_with_parameters, number_interval
 from nexinfosys.common.helper import create_dictionary, PartialRetrievalDictionary, strcmp, is_float
@@ -698,32 +698,46 @@ def dictionary_from_key_value_list(kvl, state: State = None):
     :except If syntactic problems occur
     :return: A dictionary
     """
-    pairs = kvl.split(",")
-    d = create_dictionary()
-    for p in pairs:
-        k, v = p.split("=", maxsplit=1)
-        if not k:
-            raise Exception(
-                "Each key-value pair must be separated by '=' and key has to be defined, value can be empty: " + kvl)
-        else:
-            try:
-                k = k.strip()
-                v = v.strip()
-                string_to_ast(simple_ident, k)
-                try:
-                    # Simplest: string
-                    string_to_ast(quotedString, v)
-                    v = v[1:-1]
-                except:
-                    issues = []
-                    ast = string_to_ast(expression_with_parameters, v)
-                    res, unres = ast_evaluator(ast, state, None, issues)
-                    if len(unres) == 0:
-                        v = res
+    try:
+        ast = parser_field_parsers.string_to_ast(key_value_list, kvl)
+    except:
+        raise Exception(f"Could not parse key-value list: {key_value_list}")
 
-                d[k] = v
-            except:
-                raise Exception("Key must be a string: " + k + " in key-value list: " + kvl)
+    d = create_dictionary()
+    for k, v in ast["parts"].items():
+        issues = []
+        res, unres = ast_evaluator(v, state, None, issues)
+        if len(unres) == 0:
+            v = res
+            d[k] = v
+        else:
+            raise Exception(f"Could not evaluate key '{k}' in key-value list. Value: {v}")
+
+    # pairs = kvl.split(",")
+    # for p in pairs:
+    #     k, v = p.split("=", maxsplit=1)
+    #     if not k:
+    #         raise Exception(
+    #             "Each key-value pair must be separated by '=' and key has to be defined, value can be empty: " + kvl)
+    #     else:
+    #         try:
+    #             k = k.strip()
+    #             v = v.strip()
+    #             string_to_ast(simple_ident, k)
+    #             try:
+    #                 # Simplest: string
+    #                 string_to_ast(quotedString, v)
+    #                 v = v[1:-1]
+    #             except:
+    #                 issues = []
+    #                 ast = string_to_ast(expression_with_parameters, v)
+    #                 res, unres = ast_evaluator(ast, state, None, issues)
+    #                 if len(unres) == 0:
+    #                     v = res
+    #
+    #             d[k] = v
+    #         except:
+    #             raise Exception("Key must be a string: " + k + " in key-value list: " + kvl)
     return d
 
 
