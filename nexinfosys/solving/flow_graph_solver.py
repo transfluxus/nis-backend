@@ -126,8 +126,8 @@ class ConflictResolutionAlgorithm:
         self.aggregation_conflict_policy = aggregation_conflict_policy
 
     def resolve(self, value1: FloatComputedTuple, value2: FloatComputedTuple) -> Tuple[FloatComputedTuple, FloatComputedTuple]:
-        assert(value1.computation_source != value2.computation_source,
-               f"The computation sources of both conflicting values cannot be the same: {value1.computation_source}")
+        assert value1.computation_source != value2.computation_source, \
+            f"The computation sources of both conflicting values cannot be the same: {value1.computation_source}"
 
         # Both values have been computed
         if value1.computation_source is not None and value2.computation_source is not None:

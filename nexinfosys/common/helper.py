@@ -33,6 +33,7 @@ from pandas import DataFrame
 
 import nexinfosys
 from nexinfosys import case_sensitive, SDMXConcept, get_global_configuration_variable
+from nexinfosys.common.decorators import deprecated
 from nexinfosys.ie_imports.google_drive import download_xlsx_file_id
 from nexinfosys.models import log_level
 
@@ -299,7 +300,8 @@ def import_names(package, names):
 # #####################################################################################################################
 
 
-class PartialRetrievalDictionary2:  # DEPRECATED!!!: Use PartialRetrievalDictionary
+@deprecated  # DEPRECATED!!!: Use PartialRetrievalDictionary
+class PartialRetrievalDictionary2:
     """
     Implementation using pd.DataFrame, very slow!!!
 
@@ -562,7 +564,7 @@ class PartialRetrievalDictionary:
         results = self.get(key, key_and_value, full_key, just_oid)
         return results[0] if results else None
 
-    def put(self, key, value):
+    def put(self, key: Dict[Tuple, object], value):
         """
         Insert implies the key does not exist
         Update implies the key exists
