@@ -29,6 +29,8 @@ def commands_container_parser_factory(generator_type, file_type, file, state, su
     :param file_type:
     :param file:
     :param state: State used to validate existence of some variables at parse time
+    :param sublist: Sublist of worksheets to use. If empty, all worksheets
+    :param stack: Stack of workbook "hashes" to guide the recursive parsing process and to avoid circular imports
     :return:
     """
     def hash_file(f):
@@ -50,7 +52,8 @@ def commands_container_parser_factory(generator_type, file_type, file, state, su
     h = hash_file(s)
     for i in range(len(stack)):
         if stack[i] == h:
-            # TODO Another possibility is to allow the circular reference, simply ignoring it (in this point, properly warn (use yield), then return to end this level)
+            # TODO Another possibility is to allow the circular reference, simply ignoring it (in this point,
+            #  properly warn (use yield), then return to end this level)
             raise Exception("Circular reference detected importing file")
     # Push if OK, then process the file
     stack.append(h)

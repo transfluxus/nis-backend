@@ -17,7 +17,7 @@ from pyparsing import quotedString
 from nexinfosys.model_services import State
 from nexinfosys.command_generators import global_functions, IType, Issue, IssueLocation, parser_field_parsers
 from nexinfosys.command_generators.parser_field_parsers import string_to_ast, arith_boolean_expression, key_value_list, \
-    simple_ident, expression_with_parameters, number_interval
+    simple_ident, expression_with_parameters, number_interval, arith_boolean_expression_with_less_tokens
 from nexinfosys.common.helper import create_dictionary, PartialRetrievalDictionary, strcmp, is_float
 from nexinfosys.models.musiasem_concepts import ExternalDataset, FactorType, Processor, Hierarchy
 
@@ -795,6 +795,14 @@ def check_parameter_value(glb_idx, p, value, issues, sheet_name, row):
 if __name__ == '__main__':
     from nexinfosys.model_services import State
     from dotted.collection import DottedDict
+
+    ast = string_to_ast(arith_boolean_expression_with_less_tokens, "200 < capacity_factor and capacity_factor < 400")
+    ast2 = string_to_ast(arith_boolean_expression, "200 < capacity_factor and capacity_factor < 400")
+    s = State()
+    s.set("capacity_factor", 300)
+    issues = []
+    res2, unres2 = ast_evaluator(ast2, s, None, issues)
+    res, unres = ast_evaluator(ast, s, None, issues)
 
     issues = []
     s = State()

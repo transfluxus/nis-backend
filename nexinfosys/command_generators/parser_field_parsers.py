@@ -36,6 +36,7 @@ ParserElement.enablePackrat()
 # FORWARD DECLARATIONS
 arith_expression = Forward()
 arith_boolean_expression = Forward()
+arith_boolean_expression_with_less_tokens = Forward()  # Simpler version of "arith_boolean_expression"
 conditions_list = Forward()
 expression = Forward()  # Generic expression (boolean, string, numeric)
 expression_with_parameters = Forward()  # TODO Parameter value definition. An expression potentially referring to other parameters. Boolean operators. Simulation of IF ELIF ELSE or SWITCH
@@ -482,6 +483,63 @@ expression << operatorPrecedence(Or([positive_float, positive_int, string, h_nam
                                   ],
                                  lpar=lparen.suppress(),
                                  rpar=rparen.suppress())
+
+# RULES - Slightly simpler version of "arith_boolean_expression"
+simple_h_name_1 = Group(simple_ident)\
+    .setParseAction(lambda _s, l, t: {'type': 'h_var',
+                                      'parts': t.asList()[0]
+                                      }
+                    )
+
+arith_boolean_expression_with_less_tokens << operatorPrecedence(Or([positive_float,
+                                                                    positive_int,
+                                                                    boolean,
+                                                                    string,
+                                                                    simple_h_name_1,
+                                                                    func_call]),
+                                                                [(signop, 1, opAssoc.RIGHT, lambda _s, l, t: {
+                                     'type': 'u'+t.asList()[0][0],
+                                     'terms': [0, t.asList()[0][1]],
+                                     'ops': ['u'+t.asList()[0][0]]
+                                  }),
+                                  (expop, 2, opAssoc.LEFT, lambda _s, l, t: {
+                                      'type': 'exponentials',
+                                      'terms': t.asList()[0][0::2],
+                                      'ops': t.asList()[0][1::2]
+                                  }),
+                                  (multop, 2, opAssoc.LEFT, lambda _s, l, t: {
+                                      'type': 'multipliers',
+                                      'terms': t.asList()[0][0::2],
+                                      'ops': t.asList()[0][1::2]
+                                  }),
+                                  (plusop, 2, opAssoc.LEFT, lambda _s, l, t: {
+                                      'type': 'adders',
+                                      'terms': t.asList()[0][0::2],
+                                      'ops': t.asList()[0][1::2]
+                                  }),
+                                  (comparisonop, 2, opAssoc.LEFT, lambda _s, l, t: {
+                                      'type': 'comparison',
+                                      'terms': t.asList()[0][0::2],
+                                      'ops': t.asList()[0][1::2]
+                                  }),
+                                  (notop, 1, opAssoc.RIGHT, lambda _s, l, t: {
+                                      'type': 'not',
+                                      'terms': [0, t.asList()[0][1]],
+                                      'ops': ['u'+t.asList()[0][0]]
+                                  }),
+                                  (andop, 2, opAssoc.LEFT, lambda _s, l, t: {
+                                      'type': 'and',
+                                      'terms': t.asList()[0][0::2],
+                                      'ops': t.asList()[0][1::2]
+                                  }),
+                                  (orop, 2, opAssoc.LEFT, lambda _s, l, t: {
+                                      'type': 'or',
+                                      'terms': t.asList()[0][0::2],
+                                      'ops': t.asList()[0][1::2]
+                                  }),
+                                  ],
+                                                                lpar=lparen.suppress(),
+                                                                rpar=rparen.suppress())
 
 # RULES - Expression type 2. Can mention only parameters and numbers
 # (for parameters, namespaces are allowed, and also hierarchical naming)
