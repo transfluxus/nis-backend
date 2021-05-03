@@ -36,7 +36,7 @@ from Cython.Build import cythonize
 # from Cython.Distutils import build_ext
 
 package_name = 'nexinfosys'
-version = '0.47'
+version = '0.50'
 
 
 def parse_requirements(strs):
@@ -97,6 +97,10 @@ setup(
               'nexinfosys.command_generators.spreadsheet_command_parsers.specification',
               # 'nexinfosys.magic_specific_integrations',
               'nexinfosys.command_generators.spreadsheet_command_parsers_v2',
+              'nexinfosys.restful_service',
+              'nexinfosys.restful_service.gunicorn',
+              'nexinfosys.restful_service.mod_wsgi',
+              'nexinfosys.restful_service.static.images',
               ],
     # See files to pack in "MANIFEST.in" file ("frontend" currently disabled)
     include_package_data=True,

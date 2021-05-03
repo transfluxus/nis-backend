@@ -10,20 +10,14 @@ gunicorn==19.9.0
 Cython==0.29.7
 # WINDOWS: REMOVE and USE "conda install -c conda-forge python-blosc" (install "gitforwindows", then open terminal using "Run as Administrator")
 blosc>=1.8.1
-brightway2==2.3
 matplotlib>=3.0.3
-#psycopg2==2.7.3.2  # Removed because it requires having PostgreSQL installed. It is explicitly in the Dockerfile
 webdavclient==1.0.8
 # May be troublesome in generating Windows executable
 owlready2==0.23
-celery>=4.3.0
 pykml==0.1.3
-# REMOVE "geopandas" for Windows
-geopandas>=0.4.1
 geojson>=2.4.1
-nbformat>=4.4.0
-#typing>=3.6.2
-attrs>=18.1.0
+nbformat>=5.0.7
+attrs>=19.3.0
 Flask>=1.0.2
 Flask_Session>=0.3.1
 Flask_Cors==3.0.3
@@ -31,40 +25,45 @@ Werkzeug==0.15.5  # >=
 requests==2.21.0  # >=Fe
 requests_cache==0.4.13
 pycurl>=7.43.0.6
-pymonetdb>=1.1.1
 SQLAlchemy>=1.3.3
-sqlalchemy_monetdb==0.9.3
 redis>=2.10.6
-#redislite>=5.0.124623  # Disabled because it leads to a problem in "setup.py". It is explicitly used in the Dockerfile
 pyparsing>=2.2.0
 numpy>=1.16.0
 pandas>=1.0.3
 pandas_datareader>=0.9.0
-pyarrow==1.0.0
 pandaSDMX==0.9
 sdmx>=0.2.10
 regex>=2017.11.9
 chardet>=3.0.4
-aadict>=0.2.3
 anytree>=2.2.2
 networkx>=2.2
 multidict>=3.3.2
 xmltodict>=0.11.0
-cubes==1.1
 Pint>=0.8.1
-uncertainties>=3.1.2
 xlrd==1.1.0
 #openpyxl==3.0.7  # TODO - Needed to work with NIS-frontend - Convert to the latest version, only 2.4.8 works...
 openpyxl==2.4.8
 xlsxwriter==1.0.4
-#koala2==0.0.17
 lxml==4.6.2
 #jsonpickle==0.9.6
 jsonpickle==1.2
-python_magic>=0.4.13  # To be removed, it is used only by the Magic Box file type detection
 dotted>=0.1.8 # <- Dotted notation: !!Fantastic!!
-sympy>=1.1.1
 NamedAtomicLock==1.1.3
+# aadict>=0.2.3
+# uncertainties>=3.1.2
+# pyarrow==1.0.0
+# celery>=4.3.0
+# pymonetdb>=1.1.1
+# sqlalchemy_monetdb==0.9.3
+# cubes==1.1
+# brightway2==2.3
+#psycopg2==2.7.3.2  # Removed because it requires having PostgreSQL installed. It is explicitly in the Dockerfile
+# REMOVE "geopandas" for Windows
+# geopandas>=0.4.1
+#redislite>=5.0.124623  # Disabled because it leads to a problem in "setup.py". It is explicitly used in the Dockerfile
+#koala2==0.0.17
+# python_magic>=0.4.13  # To be removed, it is used only by the Magic Box file type detection
+# sympy>=1.1.1
 #sympy==1.3
 #cachier==1.2.2
 #tablib <- dictmapper (convert nested dict's to CSV)
