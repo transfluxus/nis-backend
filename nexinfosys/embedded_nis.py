@@ -1,29 +1,27 @@
 import io
-import tempfile
+import logging
 import traceback
-import urllib
 from typing import List, Tuple, Dict
-from urllib.parse import urlparse
 
 import pandas as pd
-import requests
-import webdav.client as wc
 import xlrd
 
 import nexinfosys
 from nexinfosys.command_generators import IType
 from nexinfosys.common.helper import any_error_issue, download_file
-from nexinfosys.model_services import get_case_study_registry_objects
+from nexinfosys.model_services import get_case_study_registry_objects, State
 from nexinfosys.model_services.workspace import InteractiveSession, prepare_and_solve_model
 from nexinfosys.models.musiasem_methodology_support import DBSession
 from nexinfosys.initialization import initialize_databases, get_parameters_in_state, get_scenarios_in_state, \
     register_external_datasources, get_graph_from_state, get_dataset_from_state, get_model, get_geolayer, get_ontology, \
     validate_command, command_field_help, comm_help
 from nexinfosys import initialize_configuration
+from nexinfosys.serialization import serialize_state, deserialize_state
 
 
 class NIS:
     def __init__(self):
+        logging.basicConfig(level=logging.DEBUG)
         self._isession = None
         self._rsession = None
         self._dataframe_names = []  # type: List[str]
@@ -46,8 +44,10 @@ class NIS:
 
     # --------------- SESSION ---------------
 
-    def open_session(self, reset_commands=False):
+    def open_session(self, reset_commands=False, state: State=None):
         self._isession = InteractiveSession(DBSession)
+        if state:
+            self._isession.state = state
         self._isession.identify({"user": "test_user", "password": None}, testing=True)
         self._rsession = self._isession.open_reproducible_session(case_study_version_uuid=None,
                                                                   recover_previous_state=False,
