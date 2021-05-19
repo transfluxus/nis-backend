@@ -84,7 +84,8 @@ class NIS:
         """
         # Load a XLSX workbook into memory, as dataframes
         bytes_io = download_file(fname, wv_user, wv_password, wv_host_name)
-        xl = pd.ExcelFile(xlrd.open_workbook(file_contents=bytes_io.getvalue()), engine="xlrd")
+        xl = pd.ExcelFile(bytes_io, engine='openpyxl')
+        # xl = pd.ExcelFile(xlrd.open_workbook(file_contents=bytes_io.getvalue()), engine="xlrd")
         cont = 0
         for sheet_name in xl.sheet_names:
             df = xl.parse(sheet_name, header=0)
