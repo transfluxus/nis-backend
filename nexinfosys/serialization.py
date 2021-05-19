@@ -162,6 +162,10 @@ def serialize_state(state: State):
         if glb_idx:
             tmp = glb_idx.to_pickable()
             state2.set("_glb_idx", tmp, ns)
+        lcia_methods = state2.get("_lcia_methods", ns)
+        if lcia_methods:
+            tmp = lcia_methods.to_pickable()
+            state2.set("_lcia_methods", tmp, ns)
         datasets = ns_ds[ns]
         # TODO Serialize other DataFrames.
         # Process Datasets
@@ -219,6 +223,10 @@ def deserialize_state(st: str, state_version: int = MODEL_VERSION):
 
     # Iterate all namespaces
     for ns in state.list_namespaces():
+        lcia_methods = state.get("_lcia_methods", ns)
+        if isinstance(lcia_methods, dict):
+            lcia_methods = PartialRetrievalDictionary().from_pickable(lcia_methods)
+            state.set("_lcia_methods", lcia_methods)
         glb_idx = state.get("_glb_idx", ns)
         if isinstance(glb_idx, dict):
             glb_idx = PartialRetrievalDictionary().from_pickable(glb_idx)
