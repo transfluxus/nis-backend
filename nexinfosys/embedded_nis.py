@@ -163,7 +163,7 @@ class NIS:
 
     # --------------- SUBMISSION ---------------
 
-    def submit(self) -> List:
+    def submit(self, ignore_imports=False) -> List:
         if len(self._dataframes) == 0:
             raise Exception("The list of dataframes is empty. Cannot submit.")
 
@@ -176,12 +176,12 @@ class NIS:
             generator_type = "spreadsheet"
             content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             buffer = self._generate_in_memory_excel()
-            print(len(buffer))
+            logging.debug(len(buffer))
             execute = True
             register = False
 
             try:
-                ret = self._isession.register_andor_execute_command_generator(generator_type, content_type, buffer, register, execute)
+                ret = self._isession.register_andor_execute_command_generator(generator_type, content_type, buffer, register, execute, ignore_imports)
                 if isinstance(ret, tuple):
                     issues = ret[0]
                 else:

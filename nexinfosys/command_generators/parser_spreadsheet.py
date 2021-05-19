@@ -59,7 +59,7 @@ def handle_import_commands(r):
 # ############################### #
 
 
-def commands_generator_from_ooxml_file(input, state, sublist, stack) -> nexinfosys.ExecutableCommandIssuesPairType:
+def commands_generator_from_ooxml_file(input, state, sublist, stack, ignore_imports) -> nexinfosys.ExecutableCommandIssuesPairType:
     """
     It reads an Office Open XML input
     Yields a sequence of command_executors
@@ -148,15 +148,19 @@ def commands_generator_from_ooxml_file(input, state, sublist, stack) -> nexinfos
                         worksheet_to_command[worksheet] = command
 
         elif c_type == "import_commands":
-            issues, c_label, c_content = parse_command_in_worksheet(sheet, t, None, cmd.name)
-            if IType.ERROR not in [issue.itype for issue in issues]:
-                # Declared at this point to avoid circular reference ("parsers_factory" imports "parsers_spreadsheet")
-                from nexinfosys.command_generators.parsers_factory import commands_container_parser_factory
-                # For each line, repeat the import
-                for r in c_content["items"]:
-                    generator_type, file2, sublist2 = handle_import_commands(r)
-                    yield from commands_container_parser_factory(generator_type, None, file2, state, sublist=sublist2, stack=stack)
-                    logging.debug("IMPORT_COMMANDS done")
+            if not ignore_imports:
+                issues, c_label, c_content = parse_command_in_worksheet(sheet, t, None, cmd.name)
+                if IType.ERROR not in [issue.itype for issue in issues]:
+                    # Declared at this point to avoid circular reference ("parsers_factory" imports "parsers_spreadsheet")
+                    from nexinfosys.command_generators.parsers_factory import commands_container_parser_factory
+                    # For each line, repeat the import
+                    for r in c_content["items"]:
+                        generator_type, file2, sublist2 = handle_import_commands(r)
+                        yield from commands_container_parser_factory(generator_type, None, file2, state, sublist=sublist2, stack=stack)
+                        logging.debug("IMPORT_COMMANDS done")
+            else:
+                c_type = None
+                issues = []
 
         elif c_type == "mapping":
             groups = cmd.regex.search(name).groups()

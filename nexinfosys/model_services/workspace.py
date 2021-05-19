@@ -156,11 +156,11 @@ def execute_command(state, e_cmd: "IExecutableCommand") -> nexinfosys.IssuesOutp
         return [], None  # issues, output
 
 
-def execute_command_container(state, p_cmd: CommandsContainer):
-    return execute_command_container_file(state, p_cmd.generator_type, p_cmd.content_type, p_cmd.content)
+def execute_command_container(state, p_cmd: CommandsContainer, ignore_imports=False):
+    return execute_command_container_file(state, p_cmd.generator_type, p_cmd.content_type, p_cmd.content, ignore_imports)
 
 
-def execute_command_container_file(state, generator_type, file_type: str, file):
+def execute_command_container_file(state, generator_type, file_type: str, file, ignore_imports):
     """
     This could be considered the MAIN method of the processing.
     1) Assuming an initial "state" (that can be clean or not),
@@ -174,7 +174,7 @@ def execute_command_container_file(state, generator_type, file_type: str, file):
     :return: Issues and outputs (no outputs still required, probably won't be needed)
     """
     # Create commands generator from factory (from generator_type and file_type)
-    commands_generator = commands_container_parser_factory(generator_type, file_type, file, state)
+    commands_generator = commands_container_parser_factory(generator_type, file_type, file, state, None, None, ignore_imports)
 
     # Loop over the IExecutableCommand instances
     issues_aggreg = []
@@ -626,7 +626,7 @@ class InteractiveSession:
     def register_executable_command(self, cmd: IExecutableCommand):
         self._reproducible_session.register_executable_command(cmd)
 
-    def register_andor_execute_command_generator1(self, c: CommandsContainer, register=True, execute=False):
+    def register_andor_execute_command_generator1(self, c: CommandsContainer, register=True, execute=False, ignore_imports=False):
         """
         Creates a generator parser, then it feeds the file type and the file
         The generator parser has to parse the file and to generate command_executors as a Python generator
@@ -649,7 +649,7 @@ class InteractiveSession:
         if execute:
             c.execution_start = datetime.datetime.now()
             pass_case_study = self._reproducible_session._session.version.case_study is not None
-            ret = self._reproducible_session.execute_command_generator(c, pass_case_study)
+            ret = self._reproducible_session.execute_command_generator(c, pass_case_study, ignore_imports)
             c.execution_end = datetime.datetime.now()
             return ret
             # Or
@@ -657,7 +657,7 @@ class InteractiveSession:
         else:
             return None
 
-    def register_andor_execute_command_generator(self, generator_type, file_type: str, file, register=True, execute=False):
+    def register_andor_execute_command_generator(self, generator_type, file_type: str, file, register=True, execute=False, ignore_imports=False):
         """
         Creates a generator parser, then it feeds the file type and the file
         The generator parser has to parse the file and to generate command_executors as a Python generator
@@ -673,7 +673,8 @@ class InteractiveSession:
         return self.register_andor_execute_command_generator1(
             CommandsContainer.create(generator_type, file_type, file),
             register,
-            execute
+            execute,
+            ignore_imports
         )
 
     # --------------------------------------------------------------------------------------------
@@ -985,12 +986,12 @@ class ReproducibleSession:
         self.register_persistable_command(c)
         return c
 
-    def execute_command_generator(self, cmd: CommandsContainer, pass_case_study=False):
+    def execute_command_generator(self, cmd: CommandsContainer, pass_case_study=False, ignore_imports=False):
         if pass_case_study:  # CaseStudy can be modified by Metadata command, pass a reference to it
             self._isess._state.set("_case_study", self._session.version.case_study)
             self._isess._state.set("_case_study_version", self._session.version)
 
-        ret = execute_command_container(self._isess._state, cmd)
+        ret = execute_command_container(self._isess._state, cmd, ignore_imports)
 
         if pass_case_study:
             self._isess._state.set("_case_study", None)

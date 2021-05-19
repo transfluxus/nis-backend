@@ -147,6 +147,7 @@ def initialize_databases():
         data_connection_string = nexinfosys.get_global_configuration_variable("DATA_CONNECTION_STRING")
         logging.debug("Connecting to data server")
         if data_connection_string.startswith("monetdb"):
+            # TODO Install monet packages (see commented packages in "requirements.txt")
             nexinfosys.data_engine = create_monet_database_engine(data_connection_string, "magic_data")
         elif data_connection_string.startswith("sqlite://"):
             nexinfosys.data_engine = sqlalchemy.create_engine(data_connection_string,

@@ -21,7 +21,7 @@ from nexinfosys.command_generators.parser_json import commands_generator_from_na
 """
 
 
-def commands_container_parser_factory(generator_type, file_type, file, state, sublist=None, stack=None):
+def commands_container_parser_factory(generator_type, file_type, file, state, sublist=None, stack=None, ignore_imports=False):
     """
     Returns a generator appropriate to parse "file" and generate command_executors
 
@@ -80,7 +80,7 @@ def commands_container_parser_factory(generator_type, file_type, file, state, su
         elif isinstance(s, str):
             pass  # TODO It may be a file name
 
-        yield from commands_generator_from_ooxml_file(s, state, sublist, stack)
+        yield from commands_generator_from_ooxml_file(s, state, sublist, stack, ignore_imports)
     elif generator_type.lower() in ["json", "native", "primitive"]:  # "primitive" is Deprecated
         # A list of commands. Each command is a dictionary: the command type, a label and the content
         # The type is for the factory to determine the class to instantiate, while label and content
