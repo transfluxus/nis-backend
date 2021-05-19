@@ -70,7 +70,7 @@ def binary_mask_from_worksheet(sh_in, only_numbers=True):
 
     # Merged cells
     for ra in sh_in.merged_cell_ranges:
-        t = openpyxl.utils.range_boundaries(ra)  # min col, min row, max col, max row (max's included)
+        t = openpyxl.utils.range_boundaries(str(ra))  # min col, min row, max col, max row (max's included)
         mc = (t[1]-1, t[3]-1, t[0]-1, t[2]-1)  # Rearrange and subtract one
         v = m[mc[0], mc[2]]
         m[mc[0]:mc[1]+1, mc[2]:mc[3]+1] = v
@@ -229,8 +229,10 @@ class WorksheetCopy2(object):
 
         if self._copy_style:
             self.target.sheet_format = copy(self.source.sheet_format)
-        # if hasattr(self.source, "_merged_cells"):
-        self.target._merged_cells = copy(self.source._merged_cells)
+        if hasattr(self.source, "_merged_cells"):
+            self.target._merged_cells = copy(self.source._merged_cells)
+        elif hasattr(self.source, "merged_cells"):
+            self.target.merged_cells = copy(self.source.merged_cells)
         # else:
         #     self.target._merged_cells = None
         self.target.sheet_properties = copy(self.source.sheet_properties)
