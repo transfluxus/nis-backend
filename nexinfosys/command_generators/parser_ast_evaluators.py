@@ -100,6 +100,20 @@ def get_nis_name(original_name):
     return prefix + re.sub("[^0-9a-zA-Z_]+", "_", remainder)
 
 
+def call_udif_function(function_name, state: State=None):
+    mod_name, func_name = function_name.rsplit('.', 1)
+    mod = importlib.import_module(mod_name)
+    func = getattr(mod, func_name)
+    kwargs = dict(state=state)
+    # CALL FUNCTION!!
+    try:
+        obj = func(**kwargs)
+    except Exception as e:
+        obj = None
+
+    return obj
+
+
 def lcia_method(indicator: str, method: str=None, horizon: str=None,
                 state: State=None, lcia_methods: PartialRetrievalDictionary=None):
     """
