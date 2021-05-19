@@ -167,7 +167,7 @@ class DatasetDefCommand(IExecutableCommand):
                         iss = prepare_dataframe_after_external_read(ds, df, name)
                         issues.extend(iss)
                         # Everything ok? Store the dataframe!
-                        if len(iss) == 0:
+                        if not any_error_issue(iss):
                             ds.data = df
 
         if not error:
