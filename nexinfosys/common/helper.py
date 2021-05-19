@@ -1338,8 +1338,11 @@ def prepare_dataframe_after_external_read(ds, df, cmd_name):
                 cols.append(d.code)  # Exact case
                 if not d.is_measure:
                     dims.add(d.code)
-                    # Also, convert to string if it is numeric
-                    if df.dtypes[c] in [np.int64, np.float]:
+                    num_column = df.dtypes[c] in [np.int64, np.float]
+                    # NaN values in dimensions replaced by ""
+                    df[c] = df[c].fillna('')
+                    # Convert to string if it is numeric
+                    if num_column:
                         df[c] = df[c].astype(str)
                 break
         else:
