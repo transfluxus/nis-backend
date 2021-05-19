@@ -177,9 +177,9 @@ class BasicCommand(IExecutableCommand):
                 data = data.reset_index()
 
                 # Drop rows with empty dimension value
-                import numpy as np
-                data = data.replace(r'^\s*$', np.NaN, regex=True)
-                data.dropna(subset=requested_dimensions, inplace=True)
+                # import numpy as np
+                # data = data.replace(r'^\s*$', np.NaN, regex=True)
+                # data.dropna(subset=requested_dimensions, inplace=True)
 
                 const_dict = obtain_dictionary_with_not_expandable_fields(self._fields)  # row?
                 var_dict = set([f for f in self._fields.keys() if f not in const_dict])
@@ -442,7 +442,7 @@ def parse_cmd_row_dict(cmd_name: str, row: Dict[str, str], already_parsed_fields
     from nexinfosys.command_field_definitions import command_fields
     field_defs_dict = {f.name: f for f in command_fields[cmd_name]}
     mandatory_not_found = set([c.name for c in command_fields[cmd_name] if c.mandatory and isinstance(c.mandatory, bool)])
-    logging.debug(mandatory_not_found)
+    # logging.debug(mandatory_not_found)
     complex_mandatory_cols = [c for c in command_fields[cmd_name] if isinstance(c.mandatory, str)]
     may_append = True
     complex_row = False
