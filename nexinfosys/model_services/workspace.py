@@ -518,6 +518,10 @@ class InteractiveSession:
     def state(self):
         return self._state
 
+    @state.setter
+    def state(self, state: State):
+        self._state = state
+
     def get_sf(self):
         return self._session_factory
 
