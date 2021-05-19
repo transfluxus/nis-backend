@@ -35,8 +35,12 @@ from pkg_resources import yield_lines
 from Cython.Build import cythonize
 # from Cython.Distutils import build_ext
 
+"""
+python3 setup.py sdist bdist_wheel
+twine upload --skip-existing dist/*
+"""
 package_name = 'nexinfosys'
-version = '0.50'
+version = '0.56'
 
 
 def parse_requirements(strs):
