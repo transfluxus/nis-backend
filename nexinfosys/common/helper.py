@@ -504,6 +504,20 @@ df.loc[("h", slice(None)), "c"]
 
 
 class PartialRetrievalDictionary:
+    """
+    A (k, v) storage where "k" is Dict of (str, str) and "v" is an object:
+
+    reg = PartialRetrievalDictionary()
+    reg.put(dict(a="1", b="3"), [4, 5, 9])
+
+    The retrieval method, "get", is passed a partial key also in the form of a Dict of (str, str) and returns a list
+    of objects matching the partial key:
+
+    reg.get(dict(a="1")) -> [[4, 5, 9]]
+
+    NOTE: when inserting, both "k" and "v" (object) should be unique
+
+    """
     def __init__(self):
         # A dictionary of key-name to dictionaries, where the dictionaries are each of the values of the key and the
         # value is a set of IDs having that value
@@ -589,7 +603,7 @@ class PartialRetrievalDictionary:
             d = self._keys.get(k, {})
             if len(d) == 0:
                 self._keys[k] = d
-            if v not in d:
+            if v not in d:  # A new value "v" for subkey "k"
                 not_present.append((d, v))
             else:
                 present.append(d.get(v))
@@ -619,10 +633,13 @@ class PartialRetrievalDictionary:
                 self._rev_objs[value] = oid
 
             # Insert
+
+            # Add the subkey value to the subkey dictionaries where it is not present
             for d, v in not_present:
                 s = set()
                 d[v] = s
                 s.add(oid)
+            # Register the object into subkey-value dictionaries
             for s in present:
                 s.add(oid)
         else:
@@ -1360,7 +1377,7 @@ def prepare_dataframe_after_external_read(ds, df, cmd_name):
     if len(tmp[0]) > 0:
         for i in np.nditer(tmp):
             issue = Issue(itype=IType.ERROR,
-                          description=f"Duplicated row '{i+2}' in the data of dataset '{ds.code}'.",
+                          description=f"Duplicated row '{i+2}' in the data of dataset '{ds.code}' with value: {df.iloc[i]}",
                           location=IssueLocation(sheet_name=cmd_name,
                                                  row=i+2, column=None))
             issues.append(issue)
