@@ -45,9 +45,15 @@ class LCIAMethodsCommand(BasicCommand):
         if not lcia_methods:
             lcia_methods = PartialRetrievalDictionary()
             self._state.set("_lcia_methods", lcia_methods)
+        compartment = fields.get("compartment", "")
+        if compartment is None:
+            compartment = ""
         _ = dict(m=fields["lcia_method"],
                  d=fields["lcia_indicator"],
                  h=fields["lcia_horizon"],
-                 i=fields["interface"])
-        lcia_methods.put(_, (fields["interface_unit"], fields["lcia_coefficient"]))
+                 i=fields["interface"],
+                 c=compartment)
+        from random import random
+        # NOTE: a random() is generated just to grant that the value is unique
+        lcia_methods.put(_, (fields["interface_unit"], fields["lcia_coefficient"], random()))
 
