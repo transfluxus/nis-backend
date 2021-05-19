@@ -187,6 +187,8 @@ class DatasetDefCommand(IExecutableCommand):
                             dsd_concept_data_type = c.attributes["_datatype"]
                             if dsd_concept_data_type.lower() == "string" and not c.is_measure:  # Freely defined dimension
                                 cl = df[cid[c.code]].unique().tolist()
+                                # Filter "nan", with c == c (a Python idiom achieving this...)
+                                cl = [c if c == c else "" for c in cl]
                                 c.code_list = CodeList.construct(
                                     c.code, c.code, [""],
                                     codes=[CodeImmutable(c, c, "", []) for c in cl]
