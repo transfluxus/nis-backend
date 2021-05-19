@@ -56,10 +56,11 @@ def check_columns(sh, name: str, area: Tuple, cols: List[CommandField], command_
                     mandatory_not_found.discard(col.name)
                 break
         else:  # No match for the column "col_name"
-            issues.append(Issue(itype=IType.WARNING if ignore_not_found else IType.ERROR,
-                                description=f"In Header row, the column name '{col_name}' does not match any of the "
-                                            f"allowed column names (internal command '{command_name}')",
-                                location=IssueLocation(sheet_name=name, row=1, column=c)))
+            if not col_name.startswith("@"):
+                issues.append(Issue(itype=IType.WARNING if ignore_not_found else IType.ERROR,
+                                    description=f"In Header row, the column name '{col_name}' does not match any of the "
+                                                f"allowed column names (internal command '{command_name}')",
+                                    location=IssueLocation(sheet_name=name, row=1, column=c)))
 
     if len(mandatory_not_found) > 0:
         issues.append(Issue(itype=IType.ERROR,
