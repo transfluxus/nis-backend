@@ -25,8 +25,6 @@ import jsonpickle
 import numpy as np
 import pandas as pd
 import pycurl
-import requests
-import webdav.client as wc
 from flask import after_this_request, request
 from multidict import MultiDict, CIMultiDict
 from pandas import DataFrame
@@ -1079,6 +1077,7 @@ def to_str(v):
 
 
 def wv_create_client_and_resource_name(location, wv_user=None, wv_password=None, wv_host_name=None):
+    import webdav.client as wc
     if not wv_host_name:
         wv_host_name = get_global_configuration_variable("FS_SERVER") \
             if get_global_configuration_variable("FS_SERVER") else "nextcloud.data.magic-nexus.eu"
