@@ -341,7 +341,8 @@ def call_solver(state: State, dynamic_scenario_parameters: Dict) -> List[Issue]:
                 scenarios["default"] = create_dictionary()
                 return ProblemStatement(scenarios=scenarios)
             else:
-                return ps_list[0]
+                # TODO Combine all ProblemStatements into a single ProblemStatement
+                return ps_list[-1]  # Take last ProblemStatement
 
     # Registry and the other objects also
     glb_idx, _, _, datasets, _ = get_case_study_registry_objects(state)
