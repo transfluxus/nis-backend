@@ -72,7 +72,7 @@ conditions_closing = Literal("?")
 true = Keyword("True")
 false = Keyword("False")
 # Simple identifier
-simple_ident = Word(alphas, alphanums+"_")  # Start in letter, then "_" + letters + numbers
+simple_ident = Word(alphas+"_", alphanums+"_")  # Start in letter and "_", then "_" + letters + numbers
 external_ds_name = Word(alphas, alphanums+"-"+"_"+".")  # Dataset names can have
 list_simple_ident = delimitedList(simple_ident, ",")
 

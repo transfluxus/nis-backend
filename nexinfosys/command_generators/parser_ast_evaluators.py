@@ -94,10 +94,10 @@ def get_nis_name(original_name):
     :return:
     """
 
-    prefix = original_name[0] if original_name[0].isalpha() else "id_"
+    prefix = original_name[0] if original_name[0].isalpha() else "_"
     remainder = original_name[1:] if original_name[0].isalpha() else original_name
 
-    return prefix + re.sub("[^0-9a-zA-Z_]+", "_", remainder)
+    return prefix + re.sub("[^0-9a-zA-Z_]", "_", remainder)
 
 
 def call_udif_function(function_name, state: State=None):
