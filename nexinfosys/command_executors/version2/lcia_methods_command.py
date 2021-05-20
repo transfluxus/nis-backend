@@ -60,7 +60,7 @@ class LCIAMethodsCommand(BasicCommand):
         elif len(indicator) == 0:
             # Create it and warn
             indicator = Indicator(fields["lcia_indicator"],
-                                  f'LCIAMethods("{fields["lcia_indicator"]}")',
+                                  f'LCIAMethod("{fields["lcia_indicator"]}")',
                                   None,
                                   "",
                                   [],
