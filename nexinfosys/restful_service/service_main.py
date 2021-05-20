@@ -25,6 +25,7 @@ from openpyxl.writer.excel import save_virtual_workbook
 from werkzeug.exceptions import NotFound
 
 from nexinfosys.ie_exports.jupyter_notebook import generate_jupyter_notebook_python, generate_jupyter_notebook_r
+from nexinfosys.restful_service.rest_helper import gzipped
 
 pyximport.install(reload_support=True, language_level=3)
 
@@ -39,7 +40,7 @@ from nexinfosys.command_definitions import commands
 from nexinfosys.command_field_definitions import command_fields, _command_field_names
 from nexinfosys.command_generators import Issue, IType
 from nexinfosys.command_generators.parser_field_parsers import string_to_ast, simple_ident
-from nexinfosys.common.helper import generate_json, gzipped, str2bool, \
+from nexinfosys.common.helper import generate_json, str2bool, \
     download_file, any_error_issue, wv_upload_file
 from nexinfosys.models.musiasem_methodology_support import *
 from nexinfosys.restful_service import app, get_results_in_session
