@@ -152,9 +152,15 @@ def get_code_hierarchies(glb_idx: PartialRetrievalDictionary) -> pd.DataFrame:
 
 
 def get_interface_types(glb_idx: PartialRetrievalDictionary) -> pd.DataFrame:
-    lst = [["InterfaceTypeHierarchy", "InterfaceType", "Sphere", "RoegenType", "ParentInterfaceType", "Formula", "Description", "Unit", "OppositeSubsystemType", "Attributes"]]
+    lst = [["InterfaceTypeHierarchy", "InterfaceType", "Sphere", "RoegenType", "ParentInterfaceType", "Formula",
+            "Description", "Unit", "OppositeSubsystemType", "Attributes"]]
     for itype in glb_idx.get(FactorType.partial_key()):
-        lst.append([itype.hierarchy.name, itype.name, itype.sphere, itype.roegen_type.name, itype.parent.name if itype.parent else "", "", itype.attributes.get("description", ""), itype.attributes.get("unit", ""), itype._opposite_processor_type, ""])
+        hierarchy = itype.hierarchy.name if itype.hierarchy else ""
+        roegen_type = itype.roegen_type.name if itype.roegen_type else ""
+        parent = itype.parent.name if itype.parent else ""
+        lst.append([hierarchy, itype.name, itype.sphere, roegen_type, parent, "",
+                    itype.attributes.get("description", ""), itype.attributes.get("unit", ""),
+                    itype._opposite_processor_type, ""])
     return list_to_dataframe(lst)
 
 
