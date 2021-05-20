@@ -22,6 +22,7 @@
 # PyPI test: pip install --index-url https://test.pypi.org/simple/ --upgrade nexinfosys
 # PyPI     : pip install --upgrade nexinfosys
 # No PyPI  : pip install -e <local path where "setup.py" (this file) is located>
+#      e.g.: pip install -e file:///home/rnebot/Dropbox/nis-backend
 #
 # EXECUTION EXAMPLE ("gunicorn" must be installed: "pip install gunicorn")
 #
@@ -38,9 +39,11 @@ from Cython.Build import cythonize
 """
 python3 setup.py sdist bdist_wheel
 twine upload --skip-existing dist/*
+
+https://pypi.org/project/nexinfosys/
 """
 package_name = 'nexinfosys'
-version = '0.56'
+version = '0.61'
 
 
 def parse_requirements(strs):
