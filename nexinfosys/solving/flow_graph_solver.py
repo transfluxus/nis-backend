@@ -212,6 +212,11 @@ class InterfaceNode:
                             f"Valid object types are [Factor, FactorType].")
 
         self.processor_name: str = self.processor.full_hierarchy_name if self.processor else processor_name
+        # Optimization: instead of a virtual property, a direct property
+        if self.interface_name:
+            self.name = ":".join(self.key)
+        else:
+            self.name = ":".join(self.alternate_key)
 
     @property
     def key(self) -> Tuple:
@@ -229,12 +234,12 @@ class InterfaceNode:
     def full_key_labels() -> List[str]:
         return ["Processor", "Interface", "InterfaceType", "Orientation"]
 
-    @property
-    def name(self) -> str:
-        if self.interface_name:
-            return ":".join(self.key)
-        else:
-            return ":".join(self.alternate_key)
+    # @property
+    # def name(self) -> str:
+    #     if self.interface_name:
+    #         return ":".join(self.key)
+    #     else:
+    #         return ":".join(self.alternate_key)
 
     @property
     def type(self) -> str:
