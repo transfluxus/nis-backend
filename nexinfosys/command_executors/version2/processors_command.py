@@ -1,25 +1,16 @@
-import json
-import re
 from typing import Dict, Any, Optional
 
-from nexinfosys import CommandField
 from nexinfosys.command_executors import BasicCommand, CommandExecutionError, subrow_issue_message
-from nexinfosys.command_executors.execution_helpers import parse_line, classify_variables, \
-    obtain_dictionary_with_literal_fields
-from nexinfosys.command_executors.version2.relationships_command import obtain_matching_processors
 from nexinfosys.command_field_definitions import get_command_fields_from_class
-from nexinfosys.command_generators import Issue, IssueLocation, IType
+from nexinfosys.command_generators import IType
 from nexinfosys.command_generators.parser_ast_evaluators import dictionary_from_key_value_list
-from nexinfosys.command_generators.parser_field_parsers import string_to_ast, processor_names
-from nexinfosys.common.helper import head, strcmp, ifnull
+from nexinfosys.common.helper import strcmp
 from nexinfosys.ie_exports.geolayer import read_geojson
-from nexinfosys.model_services import IExecutableCommand, get_case_study_registry_objects
-from nexinfosys.models.musiasem_concepts import ProcessorsSet, ProcessorsRelationPartOfObservation, Parameter, \
+from nexinfosys.models.musiasem_concepts import ProcessorsSet, ProcessorsRelationPartOfObservation, \
     Processor, \
-    Geolocation, Observer, GeographicReference
-from nexinfosys.models.musiasem_concepts_helper import find_or_create_processor, find_processor_by_name, \
+    Geolocation, GeographicReference
+from nexinfosys.models.musiasem_concepts_helper import find_or_create_processor, \
     obtain_name_parts, find_processors_matching_name
-from nexinfosys.solving import get_processor_names_to_processors_dictionary
 
 
 def get_object_view(d):
