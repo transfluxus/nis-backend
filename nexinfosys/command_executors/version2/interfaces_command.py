@@ -7,6 +7,7 @@ from nexinfosys.command_executors import BasicCommand, subrow_issue_message, Com
 from nexinfosys.command_field_definitions import get_command_fields_from_class
 from nexinfosys.command_generators import parser_field_parsers, IType
 from nexinfosys.command_generators.parser_ast_evaluators import dictionary_from_key_value_list, ast_to_string
+from nexinfosys.common.decorators import memoized_method
 from nexinfosys.common.helper import strcmp, first, ifnull, UnitConversion, head
 from nexinfosys.models.musiasem_concepts import PedigreeMatrix, FactorType, \
     Factor, FactorInProcessorType, Observer, GeographicReference, ProvenanceReference, \
@@ -23,6 +24,34 @@ class InterfacesAndQualifiedQuantitiesCommand(BasicCommand):
               "environment": "externalenvironment",
               "external": "local",
               "externalenvironment": "environment"}
+
+    @memoized_method(maxsize=None)
+    def _get_relative_to_interface(self, p: Processor, relative_to: str):
+        try:
+            ast = parser_field_parsers.string_to_ast(parser_field_parsers.factor_unit, relative_to)
+        except:
+            raise CommandExecutionError(
+                f"Could not parse the RelativeTo column, value {str(relative_to)}. " + subrow_issue_message(self._subrow))
+
+        relative_to_interface_name = ast_to_string(ast["factor"])
+
+        # rel_unit_name = ast["unparsed_unit"]
+        # try:
+        #     f_unit = str((ureg(f_unit) / ureg(rel_unit_name)).units)
+        # except (UndefinedUnitError, AttributeError) as ex:
+        #     raise CommandExecutionError(f"The final unit could not be computed, interface '{f_unit}' / "
+        #                                  f"relative_to '{rel_unit_name}': {str(ex)}"+subrow_issue_message(subrow))
+
+        # relative_to_interface = first(p.factors,
+        #                               lambda ifc: strcmp(ifc.name, relative_to_interface_name))
+        relative_to_interface = p.factors_find(relative_to_interface_name)
+
+        if not relative_to_interface:
+            raise CommandExecutionError(f"Interface specified in 'relative_to' column "
+                                        f"'{relative_to_interface_name}' has not been found." + subrow_issue_message(
+                self._subrow))
+
+        return relative_to_interface
 
     def _process_row(self, field_values: Dict[str, Any], subrow=None) -> None:
         """
@@ -177,25 +206,8 @@ class InterfacesAndQualifiedQuantitiesCommand(BasicCommand):
         f_relative_to = field_values.get("relative_to")
         relative_to_interface: Optional[Factor] = None
         if f_relative_to:
-            try:
-                ast = parser_field_parsers.string_to_ast(parser_field_parsers.factor_unit, f_relative_to)
-            except:
-                raise CommandExecutionError(f"Could not parse the RelativeTo column, value {str(f_relative_to)}. "+subrow_issue_message(subrow))
-
-            relative_to_interface_name = ast_to_string(ast["factor"])
-
-            # rel_unit_name = ast["unparsed_unit"]
-            # try:
-            #     f_unit = str((ureg(f_unit) / ureg(rel_unit_name)).units)
-            # except (UndefinedUnitError, AttributeError) as ex:
-            #     raise CommandExecutionError(f"The final unit could not be computed, interface '{f_unit}' / "
-            #                                  f"relative_to '{rel_unit_name}': {str(ex)}"+subrow_issue_message(subrow))
-
-            relative_to_interface = first(interface.processor.factors, lambda ifc: strcmp(ifc.name, relative_to_interface_name))
-
-            if not relative_to_interface:
-                raise CommandExecutionError(f"Interface specified in 'relative_to' column "
-                                            f"'{relative_to_interface_name}' has not been found."+subrow_issue_message(subrow))
+            self._subrow = subrow
+            relative_to_interface = self._get_relative_to_interface(interface.processor, f_relative_to)
 
         if f_value is None and relative_to_interface is not None:
             # Search for a Interface Type Conversion defined in the ScaleChangeMap command
@@ -312,25 +324,33 @@ class InterfacesAndQualifiedQuantitiesCommand(BasicCommand):
 
         return reference
 
+    @memoized_method(maxsize=None)
+    def _get_reference(self, ref_name: str):
+        try:
+            ast = parser_field_parsers.string_to_ast(parser_field_parsers.reference, ref_name)
+            ref_id = ast["ref_id"]
+            references = self._glb_idx.get(ProvenanceReference.partial_key(ref_id))
+            if len(references) == 1:
+                reference = references[0]
+            else:
+                references = self._glb_idx.get(BibliographicReference.partial_key(ref_id))
+                if len(references) == 1:
+                    reference = references[0]
+                else:
+                    raise CommandExecutionError(
+                        f"Reference '{ref_name}' not found" + subrow_issue_message(self._subrow))
+        except:
+            # TODO Change when Ref* are implemented
+            reference = ref_name + " (not found)"
+
+        return reference
+
     def get_source(self, reference_name, subrow) -> Any:
         reference = None
 
         if reference_name:
-            try:
-                ast = parser_field_parsers.string_to_ast(parser_field_parsers.reference, reference_name)
-                ref_id = ast["ref_id"]
-                references = self._glb_idx.get(ProvenanceReference.partial_key(ref_id))
-                if len(references) == 1:
-                    reference = references[0]
-                else:
-                    references = self._glb_idx.get(BibliographicReference.partial_key(ref_id))
-                    if len(references) == 1:
-                        reference = references[0]
-                    else:
-                        raise CommandExecutionError(f"Reference '{reference_name}' not found" + subrow_issue_message(subrow))
-            except:
-                # TODO Change when Ref* are implemented
-                reference = reference_name + " (not found)"
+            self._subrow = subrow
+            reference = self._get_reference(reference_name)
 
         return reference
 
