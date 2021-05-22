@@ -1222,7 +1222,7 @@ class Processor(Identifiable, Nameable, Taggable, Qualifiable, Automatable, Obse
         Observable.__init__(self)
         Geolocatable.__init__(self, geolocation)
 
-        self._factors = []  # type: List[Factor]
+        self._factors = create_dictionary()  # type: Dict[str, Factor]
         self._relationships = []  # type: List[ProcessorsRelationObservation]
         self._local_indicators = []  # type: List[Indicator]
 
@@ -1256,7 +1256,7 @@ class Processor(Identifiable, Nameable, Taggable, Qualifiable, Automatable, Obse
 
     @property
     def factors(self):
-        tmp = [f for f in self._factors]
+        tmp = [f for f in self._factors.values()]
         if self.referenced_processor:
             s = set([f.name.lower() for f in tmp])
             for f in self.referenced_processor.factors:
@@ -1266,14 +1266,15 @@ class Processor(Identifiable, Nameable, Taggable, Qualifiable, Automatable, Obse
         return tmp
 
     def factors_append(self, factor: "Factor"):
-        self._factors.append(factor)
+        self._factors[factor.name] = factor
 
     def factors_find(self, factor_name: str) -> Optional["Factor"]:
-        for f in self.factors:  # type: Factor
-            if strcmp(f.name, factor_name):
-                return f
-
-        return None
+        return self._factors.get(factor_name)
+        # for f in self.factors:  # type: Factor
+        #     if strcmp(f.name, factor_name):
+        #         return f
+        #
+        # return None
 
     @property
     def extensive(self):
