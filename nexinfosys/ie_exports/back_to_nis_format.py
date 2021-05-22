@@ -238,12 +238,16 @@ def get_interfaces(glb_idx: PartialRetrievalDictionary) -> pd.DataFrame:
                     d[iface.ident].add(obs.relative_factor.ident)
                 # Consider obs.value and non linear dependencies
                 if isinstance(obs.value, str):
-                    ast = string_to_ast(expression_with_parameters, obs.value)
-                    evaluation_issues = []
-                    value, unresolved_vars = ast_evaluator(exp=ast, state=s, obj=None, issue_lst=evaluation_issues)
-                    for unresolved in unresolved_vars:
-                        if unresolved not in params:
-                            d[iface.ident].add(iface_names[unresolved].ident)
+                    try:
+                        value = float(obs.value)
+                        unresolved_vars = []
+                    except ValueError:
+                        ast = string_to_ast(expression_with_parameters, obs.value)
+                        evaluation_issues = []
+                        value, unresolved_vars = ast_evaluator(exp=ast, state=s, obj=None, issue_lst=evaluation_issues)
+                        for unresolved in unresolved_vars:
+                            if unresolved not in params:
+                                d[iface.ident].add(iface_names[unresolved].ident)
 
         for ident2 in list(toposort.toposort_flatten(d)):
             iface = glb_idx.get(Factor.partial_key(ident=ident2))[0]
