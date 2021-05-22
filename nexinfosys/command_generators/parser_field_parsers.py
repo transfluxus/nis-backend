@@ -749,11 +749,14 @@ def string_to_ast(rule: ParserElement, input_: str) -> Dict:
             replace('€', 'eur'). \
             replace('$', 'usd')
 
-    res = rule.parseString(clean_str(input_), parseAll=True)
-    res = res.asList()[0]
-    while isinstance(res, list):
-        res = res[0]
-    return res
+    if rule == unquoted_string:
+        return input_
+    else:
+        res = rule.parseString(clean_str(input_), parseAll=True)
+        res = res.asList()[0]
+        while isinstance(res, list):
+            res = res[0]
+        return res
 
 
 def is_year(s: str) -> bool:
