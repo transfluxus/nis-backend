@@ -1630,7 +1630,7 @@ def export_solver_data(datasets, data, dynamic_scenario, state, global_parameter
     df = pd.DataFrame.from_dict(data, orient='index')
 
     # Round all values to 3 decimals
-    df = df.round(3)
+    # df = df.round(3)
     # Give a name to the dataframe indexes
     index_names = [f.title() for f in
                    ResultKey._fields] + InterfaceNode.full_key_labels()
