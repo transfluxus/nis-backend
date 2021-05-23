@@ -31,7 +31,6 @@ from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from typing import Dict, List, Set, Any, Tuple, Union, Optional, NamedTuple, Generator, NoReturn, Sequence
-
 import lxml
 import networkx as nx
 import pandas as pd
@@ -845,7 +844,8 @@ def create_computation_graph_from_flows(relations_flow: nx.DiGraph, relations_sc
     return comp_graph_flow
 
 
-def compute_interfacetype_hierarchies(registry, interface_nodes: Set[InterfaceNode]) -> InterfaceNodeHierarchy:
+def compute_interfacetype_hierarchies(registry: PartialRetrievalDictionary,
+                                      interface_nodes: Set[InterfaceNode]) -> InterfaceNodeHierarchy:
 
     def compute(parent: FactorType):
         """ Recursive computation for a depth-first search """
@@ -894,43 +894,64 @@ def compute_interfacetype_hierarchies(registry, interface_nodes: Set[InterfaceNo
     return hierarchies
 
 
-def compute_partof_hierarchies(registry, interface_nodes: Set[InterfaceNode]) \
+def compute_partof_hierarchies(registry: PartialRetrievalDictionary,
+                               interface_nodes: Set[InterfaceNode]) \
         -> Tuple[InterfaceNodeHierarchy, ProcessorsRelationWeights]:
+    """
+    Obtain the information to enable computing part-of hierarchies:
+      - hierarchies: a dictionary(Parent InterfaceNode, set(Children InterfaceNodes)
+      - weights:     a dictionary( (Parent InterfaceNode, Child InterfaceNode), weight)
 
+    :param registry:
+    :param interface_nodes: Set of ALL InterfaceNodes until the execution of this function
+    :return: See function description
+    """
     def compute(parent: Processor):
         """ Recursive computation for a depth-first search """
         if parent in visited_processors:
             return
 
-        for child in processor_partof_relations[parent]:
-            if child in processor_partof_relations:
+        for child in processor_partof_children[parent]:
+            if child in processor_partof_children:  # If child is also parent, compute first
                 compute(child)
 
             child_interface_nodes: List[InterfaceNode] = processor_interface_nodes.get(child, [])
 
             if child_interface_nodes and (parent, child) in behave_as_differences:
-                # Remove interfaces from child that doesn't belong to behave_as_processor
+                # Remove interfaces from child that don't belong to behave_as_processor
                 child_interface_nodes = [n for n in child_interface_nodes if n.interface_name not in behave_as_differences[(parent, child)]]
 
             # Add the interfaces of the child processor to the parent processor
             for child_interface_node in child_interface_nodes:
                 parent_interface_node = InterfaceNode(child_interface_node.interface, parent)
-
+                interface_node = name_ifacenodes.get(parent_interface_node.name)
                 # Search parent_interface in Set of existing interface_nodes, it can have same name but different
                 # combination of (type, orientation). For example, we define:
                 # - interface "ChildProcessor:Water" as (BlueWater, Input)
                 # - interface "ParentProcessor:Water" as (BlueWater, Output)
                 # In this case aggregating child interface results in a conflict in parent
-                if parent_interface_node in interface_nodes:
-                    for interface_node in interface_nodes:
-                        if interface_node == parent_interface_node:
-                            if (interface_node.type, interface_node.orientation) != (parent_interface_node.type, parent_interface_node.orientation):
-                                raise SolvingException(
-                                    f"Interface '{parent_interface_node}' already defined with type <{parent_interface_node.type}> and orientation <{parent_interface_node.orientation}> "
-                                    f"is being redefined with type <{interface_node.type}> and orientation <{interface_node.orientation}> when aggregating processor "
-                                    f"<{child_interface_node.processor_name}> to parent processor <{parent_interface_node.processor_name}>. Rename either the child or the parent interface.")
-                            break
+                if interface_node:
+                    # Exists, check the above possible issue: "conflict in interface orientation"
+                    if True:
+                        if (interface_node.type, interface_node.orientation) != \
+                                (parent_interface_node.type, parent_interface_node.orientation):
+                            raise SolvingException(
+                                f"Interface '{parent_interface_node}' already defined with type <{parent_interface_node.type}> and orientation <{parent_interface_node.orientation}> "
+                                f"is being redefined with type <{interface_node.type}> and orientation <{interface_node.orientation}> when aggregating processor "
+                                f"<{child_interface_node.processor_name}> to parent processor <{parent_interface_node.processor_name}>. Rename either the child or the parent interface.")
+                    else:
+                        for interface_node in interface_nodes:
+                            if interface_node == parent_interface_node:
+                                if (interface_node.type, interface_node.orientation) != \
+                                        (parent_interface_node.type, parent_interface_node.orientation):
+                                    raise SolvingException(
+                                        f"Interface '{parent_interface_node}' already defined with type <{parent_interface_node.type}> and orientation <{parent_interface_node.orientation}> "
+                                        f"is being redefined with type <{interface_node.type}> and orientation <{interface_node.orientation}> when aggregating processor "
+                                        f"<{child_interface_node.processor_name}> to parent processor <{parent_interface_node.processor_name}>. Rename either the child or the parent interface.")
+                                break
                 else:
+                    # Does not exist, just add it
+                    name_ifacenodes[parent_interface_node.name] = parent_interface_node
                     interface_nodes.add(parent_interface_node)
                     processor_interface_nodes.setdefault(parent_interface_node.processor, []).append(parent_interface_node)
 
@@ -939,12 +960,15 @@ def compute_partof_hierarchies(registry, interface_nodes: Set[InterfaceNode]) \
         visited_processors.add(parent)
 
     # Get the -PartOf- processor relations of the system
-    processor_partof_relations, weights, behave_as_dependencies = get_processor_partof_relations(registry)
+    processor_partof_children, weights, behave_as_dependencies = get_processor_partof_relations(registry)
+
+    name_ifacenodes = {}
 
     # Get the list of interfaces of each processor
     processor_interface_nodes: Dict[Processor, List[InterfaceNode]] = {}
     for node in interface_nodes:
         processor_interface_nodes.setdefault(node.processor, []).append(node)
+        name_ifacenodes[node.name] = node
 
     check_behave_as_dependencies(behave_as_dependencies, processor_interface_nodes)
     behave_as_differences = compute_behave_as_differences(behave_as_dependencies, processor_interface_nodes)
