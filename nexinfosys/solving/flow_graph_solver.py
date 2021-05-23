@@ -977,7 +977,8 @@ def compute_partof_hierarchies(registry: PartialRetrievalDictionary,
     visited_processors: Set[Processor] = set()
 
     # Iterate over all relations
-    for parent_processor in processor_partof_relations:
+    # TODO maybe filter to only those parent processors in the top level? We have "visited_processors" but
+    for parent_processor in processor_partof_children:
         compute(parent_processor)
 
     return hierarchies, weights
@@ -1849,6 +1850,8 @@ def calculate_local_scalar_indicators(indicators: List[Indicator],
         scenario_params = create_dictionary()
         for scenario_name, scenario_exp_params in problem_statement.scenarios.items():  # type: str, dict
             scenario_params[scenario_name] = evaluate_parameters_for_scenario(global_parameters, scenario_exp_params)
+            if not case_sensitive:
+                scenario_params[scenario_name] = {k.lower(): v for k, v in scenario_params[scenario_name].items()}
 
         issues = []
         new_df_rows_idx = []
@@ -1857,20 +1860,33 @@ def calculate_local_scalar_indicators(indicators: List[Indicator],
             params = scenario_params[t[0]]
             # Elaborate a dictionary with: <interface>_<orientation>: <Value>
             d = {}
-            # Iterate through available values in a single processor
-            for row, sdf in g.iterrows():
-                iface = row[4]  # InterfaceType
-                orientation = row[5]  # Orientation
-                iface_orientation = iface + "_" + orientation
-                if iface_orientation in d:
-                    logging.debug(f"{iface_orientation} found to already exist!")
-                d[iface_orientation] = sdf["Value"]
-                if iface not in d:
-                    d[iface] = sdf["Value"]  # First appearance allowed, insert, others ignored
-            # Include parameters (with priority)
+            # Faster implementation
+            if True:
+                ifaces = g.index.get_level_values(4).values if case_sensitive else g.index.get_level_values(4).str.lower().values
+                orient = g.index.get_level_values(5).values if case_sensitive else g.index.get_level_values(5).str.lower().values
+                values = g["Value"].values
+                if case_sensitive:
+                    d = {k: v for k, v in zip(ifaces, values)}
+                    d.update({f"{k}_{k2}": v for k, k2, v in zip(ifaces, orient, values)})
+                else:
+                    d = {k.lower(): v for k, v in zip(ifaces, values)}
+                    d.update({f"{k}_{k2}".lower(): v for k, k2, v in zip(ifaces, orient, values)})
+            else:
+                # Iterate through available values in a single processor
+                for row, sdf in g.iterrows():
+                    iface = row[4]  # InterfaceType
+                    orientation = row[5]  # Orientation
+                    iface_orientation = iface + "_" + orientation
+                    if iface_orientation in d:
+                        logging.debug(f"{iface_orientation} found to already exist!")
+                    d[iface_orientation] = sdf["Value"]
+                    if iface not in d:
+                        d[iface] = sdf["Value"]  # First appearance allowed, insert, others ignored
+                    if not case_sensitive:
+                        d = {k.lower(): v for k, v in d.items()}
+
+            # Include parameters (priority over Interfaces)
             d.update(params)
-            if not case_sensitive:
-                d = {k.lower(): v for k, v in d.items()}
 
             state = State(d)
             state.set("_lcia_methods", global_state.get("_lcia_methods"))
