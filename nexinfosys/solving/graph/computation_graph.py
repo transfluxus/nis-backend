@@ -1,13 +1,13 @@
 from typing import Dict, List, Tuple, Set, Optional, Container
-
 import networkx as nx
 
+from nexinfosys.common.decorators import memoized_method
 from nexinfosys.solving.graph import Node, EdgeType, Weight, Value
 
 
 class ComputationGraph:
     """
-    A Computation Graph is a directed where:
+    A Computation Graph is a directed graph where:
      - Each node represents a variable to be computed or which value is given.
      - Each directed edge represents how the destination node can be computed based on the value of the source node, or
        in the opposite direction if a reverse weight exist.
@@ -52,6 +52,7 @@ class ComputationGraph:
         """ Return the nodes of the graph present in a container """
         return [n for n in self.graph.nodes if n in container]
 
+    @memoized_method(maxsize=None)
     def _inputs(self, n: Node, edge_type: EdgeType) -> List[Tuple[Node, Optional[Weight]]]:
         """ Return the predecessors of a node in the specified direction """
         return [(e[0], e[2]['weight']) for e in self.graph.in_edges(n, data=True) if e[2]['type'] == edge_type]
