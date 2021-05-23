@@ -1803,11 +1803,10 @@ def inplace_case_sensitiveness_dataframe(df: pd.DataFrame):
     if not case_sensitive:
         level_processor = df.index._get_level_number("Processor")
         level_interface = df.index._get_level_number("Interface")
-        df.index.set_levels([df.index.levels[level_processor].str.lower(),
-                             df.index.levels[level_interface].str.lower()],
-                            level=[level_processor, level_interface],
-                            verify_integrity=False,
-                            inplace=True)
+        df.index = df.index.set_levels([df.index.levels[level_processor].str.lower(),
+                                        df.index.levels[level_interface].str.lower()],
+                                       level=[level_processor, level_interface],
+                                       verify_integrity=False)
 
 
 def calculate_local_scalar_indicators(indicators: List[Indicator],
