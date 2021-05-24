@@ -27,7 +27,7 @@ class LCIAMethodsCommand(BasicCommand):
             pass
         elif len(interface_type) == 0:
             ft_name = fields["interface"]
-            ft_h_name = "LCIAInterfaceTypes"
+            ft_h_name = "LCIA"
             hie = self._glb_idx.get(Hierarchy.partial_key(name=ft_h_name))
             if not hie:
                 hie = Hierarchy(name=ft_h_name, type_name="interfacetype")
