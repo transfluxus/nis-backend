@@ -110,6 +110,22 @@ class AggregationConflictResolutionPolicy(Enum):
             return existing_value, computed_value
 
 
+# Cache of sorted lists
+cached_sorts = {}
+
+
+# @cached(cache={}, key=lambda cache_key, list: cache_key)
+def sort_something(cache_key, list_to_sort):
+    return list_to_sort
+    c = cached_sorts.get(cache_key, [])
+    if len(c) != len(list_to_sort):
+        c = sorted(list_to_sort)
+        cached_sorts[cache_key] = c
+    else:
+        print("Cache hit")
+    return c
+
+
 class MissingValueResolutionPolicy(Enum):
     UseZero = 0
     Invalidate = 1
@@ -1052,7 +1068,7 @@ def compute_hierarchy_graph_results(
     def solve_inputs(inputs: List[FloatExp.ValueWeightPair], split: bool) -> Optional[FloatExp]:
         input_values: List[FloatExp.ValueWeightPair] = []
 
-        for n, weight in sorted(inputs):
+        for n, weight in inputs:
             res_backward = compute_node(n)
 
             # If node 'n' is a 'split' only one result is needed to compute the result
@@ -1078,10 +1094,12 @@ def compute_hierarchy_graph_results(
 
         pending_nodes.append(node)
 
-        sum_children = solve_inputs(graph.direct_inputs(node), graph.get_reverse_node_split(node))
+        # NOTE: it is convenient to pass a sorted list so Expression shows always the same result at string level
+        #       "sort_something" has the purpose of keeping this behavior while contributing to a speedup.
+        sum_children = solve_inputs(sort_something((node, "f"), graph.direct_inputs(node)), graph.get_reverse_node_split(node))
 
         if sum_children is None:
-            sum_children = solve_inputs(graph.reverse_inputs(node), graph.get_direct_node_split(node))
+            sum_children = solve_inputs(sort_something((node, "r"), graph.reverse_inputs(node)), graph.get_direct_node_split(node))
 
         float_value = params.get(node)
         if sum_children is not None:
