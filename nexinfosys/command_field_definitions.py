@@ -392,11 +392,13 @@ command_fields: Dict[str, List[CommandField]] = {
 
     # NEW command, implementation of Cristina's suggestions
     "lcia_methods": [
-        CommandField(allowed_names=["LCIAMethod"], name="lcia_method", mandatory=True, parser=simple_ident),  # IndicatorMethod (Indicators), SAME (LCIAmethod)
+        CommandField(allowed_names=["LCIAMethod"], name="lcia_method", mandatory=True, parser=unquoted_string),  # IndicatorMethod (Indicators), SAME (LCIAmethod)
         CommandField(allowed_names=["LCIAIndicator"], name="lcia_indicator", mandatory=True, parser=simple_ident),  # IndicatorName (Indicators), SAME (LCIAmethod)
+        CommandField(allowed_names=["LCIAIndicatorUnit"], name="lcia_indicator_unit", mandatory=True, parser=unquoted_string),  # IndicatorName (Indicators), SAME (LCIAmethod)
         CommandField(allowed_names=["LCIAHorizon"], name="lcia_horizon", mandatory=True, parser=simple_ident),  # IndicatorTemporal (Indicators)
         CommandField(allowed_names=["Interface"], name="interface", mandatory=True, parser=simple_ident),  # SAME (LCIAmethod)
         CommandField(allowed_names=["Compartment"], name="compartment", mandatory=False, parser=unquoted_string),  # SAME (LCIAmethod)
+        CommandField(allowed_names=["Subcompartment"], name="subcompartment", mandatory=False, parser=unquoted_string),  # SAME (LCIAmethod)
         CommandField(allowed_names=["InterfaceUnit"], name="interface_unit", mandatory=True, parser=unit_name),  # Not present, but needed to warrant independence from specification of InterfaceTypes
         CommandField(allowed_names=["LCIACoefficient"], name="lcia_coefficient", mandatory=True,  # SAME (LCIAmethod)
                      parser=signed_float)

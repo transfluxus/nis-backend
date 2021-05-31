@@ -53,25 +53,30 @@ class LCIAMethodsCommand(BasicCommand):
                             f"InterfaceType with name '{fields['interface']}' found {len(interface_type)} times" + subrow_issue_message(subrow))
             return
 
+        auto_create = False
+
         # (LCIA) Indicator must exist
         indicator = self._glb_idx.get(Indicator.partial_key(fields["lcia_indicator"]))
         if len(indicator) == 1:
             pass
         elif len(indicator) == 0:
-            # Create it and warn
-            indicator = Indicator(fields["lcia_indicator"],
-                                  f'LCIAMethod("{fields["lcia_indicator"]}")',
-                                  None,
-                                  "",
-                                  [],
-                                  IndicatorCategories.factors_expression,
-                                  "",
-                                  "LCIA",
-                                  fields["interface_unit"],
-                                  fields["interface_unit"],
-                                  fields["lcia_method"])
-            self._glb_idx.put(indicator.key(), indicator)
-            self._add_issue(IType.WARNING, f"Indicator with name '{fields['lcia_indicator']}' not found, created" + subrow_issue_message(subrow))
+            if auto_create:
+                # Create it and warn
+                indicator = Indicator(fields["lcia_indicator"],
+                                      f'LCIAMethod("{fields["lcia_indicator"]}")',
+                                      None,
+                                      "",
+                                      [],
+                                      IndicatorCategories.factors_expression,
+                                      "",
+                                      "LCIA",
+                                      fields["interface_unit"],
+                                      fields["interface_unit"],
+                                      fields["lcia_method"])
+                self._glb_idx.put(indicator.key(), indicator)
+                self._add_issue(IType.WARNING, f"Indicator with name '{fields['lcia_indicator']}' not found, created" + subrow_issue_message(subrow))
+            else:
+                self._add_issue(IType.WARNING, f"Indicator with name '{fields['lcia_indicator']}' not found, skipped" + subrow_issue_message(subrow))
         else:
             self._add_issue(IType.ERROR,
                             f"Indicator with name '{fields['lcia_indicator']}' found {len(indicator)} times" + subrow_issue_message(subrow))
@@ -83,15 +88,22 @@ class LCIAMethodsCommand(BasicCommand):
         if not lcia_methods:
             lcia_methods = PartialRetrievalDictionary()
             self._state.set("_lcia_methods", lcia_methods)
+        horizon = fields.get("lcia_horizon", "")
+        if horizon is None or horizon in ("_", "-"):
+            horizon = ""
         compartment = fields.get("compartment", "")
         if compartment is None:
             compartment = ""
+        subcompartment = fields.get("subcompartment", "")
+        if subcompartment is None:
+            subcompartment = ""
         _ = dict(m=fields["lcia_method"],
                  d=fields["lcia_indicator"],
-                 h=fields["lcia_horizon"],
+                 h=horizon,
                  i=fields["interface"],
-                 c=compartment)
+                 c=compartment,
+                 s=subcompartment)
         from random import random
         # NOTE: a random() is generated just to grant that the value is unique
-        lcia_methods.put(_, (fields["interface_unit"], fields["lcia_coefficient"], random()))
+        lcia_methods.put(_, (fields["interface_unit"], fields["lcia_coefficient"], fields.get("lcia_interface_unit"), random()))
 

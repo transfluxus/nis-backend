@@ -114,29 +114,62 @@ def call_udif_function(function_name, state: State=None):
     return obj
 
 
-def lcia_method(indicator: str, method: str=None, horizon: str=None,
+lcia_method_names = {}
+
+
+def lcia_method(indicator: str, method: str=None, horizon: str=None, compartment: str=None, subcompartment: str=None,
                 state: State=None, lcia_methods: PartialRetrievalDictionary=None):
     """
 
     :param indicator: Indicator name
     :param method: LCIA method weighting
     :param horizon: Time horizon
+    :param compartment: Compartment to which the indicator applies
+    :param subcompartment: Subcompartment to which the indicator applies
     :param state: Current values of processor plus parameters
     :param lcia_methods: Where LCIA data is collected
     :return: A dictionary with the
     """
+    global lcia_method_names
     if indicator is None or indicator.strip() == "":
         return None
+
+    try:
+        string_to_ast(simple_ident, indicator)
+    except:
+        indicator = get_nis_name(indicator)
 
     k = dict(d=indicator)
     if method:
         k["m"] = method
     if horizon:
         k["h"] = horizon
+    if compartment:
+        k["c"] = compartment
+    if subcompartment:
+        k["s"] = subcompartment
+
     ms = lcia_methods.get(key=k, key_and_value=True)
     indices = create_dictionary()
     for k, v in ms:
-        idx_name = f'{k["d"]}_{k["m"]}_{k["h"]}'
+        method = k["m"]
+        if method not in lcia_method_names:
+            tmp = method
+            try:
+                string_to_ast(simple_ident, method)
+            except:
+                method = get_nis_name(method)
+            lcia_method_names[tmp] = method
+        else:
+            method = lcia_method_names[method]
+
+        idx_name = f'{indicator}_{method}'
+        if k["h"] != "":
+            idx_name += f'_{k["h"]}'
+        if k["c"] != "":
+            idx_name += f'_{get_nis_name(k["c"])}'
+        if k["s"] != "":
+            idx_name += f'_{get_nis_name(k["s"])}'
         if idx_name in indices:
             lst = indices[idx_name]
         else:
