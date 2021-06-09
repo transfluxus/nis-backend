@@ -163,8 +163,8 @@ def initialize_databases():
 
 def get_parameters_in_state(state: State):
     res = []
-    query = BasicQuery(state)
-    for p in query.execute([Parameter], filt=""):
+    registry, _, _, _, _ = get_case_study_registry_objects(state)
+    for p in registry.get(Parameter.partial_key()):
         p_name = p.name
         p_type = p.type
         if p.range:

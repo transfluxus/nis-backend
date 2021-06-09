@@ -338,14 +338,14 @@ class NIS:
                               formats=[
                                   dict(format=f, url=F"model.{f.lower()}")
                                   for f in ["JSON", "XLSX", "XML"]]),
-                         ] + \
-                        [dict(name="Ontology",
-                              type="ontology",
-                              description="OWL ontology",
-                              formats=[
-                                  dict(format=f, url=F"ontology.{f.lower()}")
-                                  for f in ontology_formats]),
                          ]
+                        # [dict(name="Ontology",
+                        #       type="ontology",
+                        #       description="OWL ontology",
+                        #       formats=[
+                        #           dict(format=f, url=F"ontology.{f.lower()}")
+                        #           for f in ontology_formats]),
+                        #  ]
 
             return r
 
@@ -367,12 +367,16 @@ class NIS:
 
         Example:
           nis.get_results(["dataset", "ds1"])
+          nis.get_results([None, "ds1"])  # Guesses the dataset type
 
         :param datasets:
         :return:
         """
         if self._isession:
+            struc_types = {ds["name"]: ds["type"] for ds in self.query_available_datasets()}
+
             res = []
+
             for t in datasets:
                 struc_type = t[0]
                 ds_name = t[1]
@@ -387,6 +391,9 @@ class NIS:
                     ds_name = ds_name[:pos]
                 else:
                     extension = None
+
+                if struc_type is None:
+                    struc_type = struc_types.get(ds_name, "")
 
                 if struc_type == "dataset":
                     ds, ctype, ok = get_dataset_from_state(self._isession.state, ds_name, extension, labels_enabled=True)

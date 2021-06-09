@@ -26,6 +26,7 @@
 #
 # EXECUTION EXAMPLE ("gunicorn" must be installed: "pip install gunicorn")
 #
+# pip install openpyxl==2.4.8 pandas==1.0.3
 # gunicorn --workers=1 --log-level=debug --timeout=2000 --bind 0.0.0.0:8081 nexinfosys.restful_service.service_main:app
 #
 from os import path
@@ -43,7 +44,7 @@ twine upload --skip-existing dist/*
 https://pypi.org/project/nexinfosys/
 """
 package_name = 'nexinfosys'
-version = '0.63'
+version = '0.64'
 
 
 def parse_requirements(strs):
@@ -91,14 +92,14 @@ setup(
     name=package_name,
     version=version,
     install_requires=install_reqs,
-    packages=['nexinfosys', 'nexinfosys.common', 'nexinfosys.models', 'nexinfosys.models.experiments', 'nexinfosys.solving',
-              'nexinfosys.solving.graph', 'nexinfosys.ie_exports', 'nexinfosys.ie_imports', 'nexinfosys.ie_imports.data_sources',
-              'nexinfosys.ie_imports.experimental', 'nexinfosys.authentication', 'nexinfosys.model_services',
-              'nexinfosys.command_executors', 'nexinfosys.command_executors.misc', 'nexinfosys.command_executors.solving',
-              'nexinfosys.command_executors.analysis', 'nexinfosys.command_executors.version2',
-              'nexinfosys.command_executors.read_query', 'nexinfosys.command_executors.external_data',
-              'nexinfosys.command_executors.specification', 'nexinfosys.command_generators',
-              'nexinfosys.command_generators.spreadsheet_command_parsers',
+    packages=['nexinfosys', 'nexinfosys.bin', 'nexinfosys.common', 'nexinfosys.models', 'nexinfosys.models.experiments',
+              'nexinfosys.solving', 'nexinfosys.solving.graph', 'nexinfosys.ie_exports', 'nexinfosys.ie_imports',
+              'nexinfosys.ie_imports.data_sources', 'nexinfosys.ie_imports.experimental', 'nexinfosys.authentication',
+              'nexinfosys.model_services', 'nexinfosys.command_executors', 'nexinfosys.command_executors.misc',
+              'nexinfosys.command_executors.solving', 'nexinfosys.command_executors.analysis',
+              'nexinfosys.command_executors.version2', 'nexinfosys.command_executors.read_query',
+              'nexinfosys.command_executors.external_data', 'nexinfosys.command_executors.specification',
+              'nexinfosys.command_generators', 'nexinfosys.command_generators.spreadsheet_command_parsers',
               'nexinfosys.command_generators.spreadsheet_command_parsers.analysis',
               'nexinfosys.command_generators.spreadsheet_command_parsers.external_data',
               'nexinfosys.command_generators.spreadsheet_command_parsers.specification',
@@ -117,6 +118,7 @@ setup(
     license='BSD-3',
     author=['Rafael Nebot', 'Marco Galluzzi'],
     author_email='rnebot@itccanarias.org',
+    entry_points={'console_scripts': ['nexinfosys=nexinfosys.bin.cli_script:main']},
     long_description=long_description,
     long_description_content_type='text/markdown',
     description='Formal and executable MuSIASEM multi-system Nexus models for Sustainable Development Analysis'
