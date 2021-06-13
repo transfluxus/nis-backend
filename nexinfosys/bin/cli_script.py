@@ -126,7 +126,7 @@ def prepare_base_state(base_url: str, solve: bool, directory: str = None, force_
 
 
 def print_issues(operation, file, issues: List[Issue]):
-    if issues:
+    if issues is not None:
         if len(issues) > 0:
             error_count = 0
             warning_count = 0
