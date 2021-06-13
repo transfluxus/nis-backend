@@ -144,7 +144,7 @@ def serialize_state(state: State):
     import copy
     # "_datasets"
     ns_ds = {}
-    # Save and nullify before deep copy
+    # Save and nullify "_datasets" before deep copy
     for ns in state.list_namespaces():
         _, _, _, datasets, _ = get_case_study_registry_objects(state, ns)
         ns_ds[ns] = datasets
@@ -156,6 +156,10 @@ def serialize_state(state: State):
     state2 = copy.deepcopy(state)
     sys.setrecursionlimit(tmp)
 
+    # Restore "_datasets"
+    for ns in state.list_namespaces():
+        state.set("_datasets", ns_ds[ns], ns)  # Nullify datasets
+
     # Iterate all namespaces
     for ns in state2.list_namespaces():
         glb_idx, p_sets, hh, _, mappings = get_case_study_registry_objects(state2, ns)
@@ -166,7 +170,8 @@ def serialize_state(state: State):
         if lcia_methods:
             tmp = lcia_methods.to_pickable()
             state2.set("_lcia_methods", tmp, ns)
-        datasets = ns_ds[ns]
+        _, _, _, datasets, _ = get_case_study_registry_objects(state, ns)
+        datasets2 = create_dictionary()
         # TODO Serialize other DataFrames.
         # Process Datasets
         for ds_name in datasets:
@@ -179,8 +184,8 @@ def serialize_state(state: State):
             # DB serialize the datasets
             lst2 = serialize(ds.get_objects_list())
             lst2.append(tmp)  # Append the serialized DataFrame
-            datasets[ds_name] = lst2
-        state2.set("_datasets", datasets, ns)
+            datasets2[ds_name] = lst2
+        state2.set("_datasets", datasets2, ns)
     tmp = serialize_from_object(state2)  # <<<<<<<< SLOWEST !!!! (when debugging)
     logging.debug("  serialize_state length: "+str(len(tmp))+" OUT")
     tmp = blosc.compress(bytearray(tmp, "utf-8"), cname="zlib", typesize=8)
