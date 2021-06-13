@@ -405,6 +405,8 @@ class NIS:
                     ds, ctype, ok = get_model(self._isession.state, extension)
                 elif struc_type == "ontology":
                     ds, ctype, ok = get_ontology(self._isession.state, extension)
+                else:
+                    ds, ctype, ok = None, None, False
 
                 res.append((ds, ctype, ok))
             return res
