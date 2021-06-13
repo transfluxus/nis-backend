@@ -184,6 +184,7 @@ def write_results(state_or_nis: Union[State, NIS], output_dir: str, datasets: Li
             else:
                 val = ds[0]
             flag = "b" if not isinstance(ds[0], StringIO) and not isinstance(ds[0], str) else "t"
+            print(f"Writing {name} to: {output_dir}{os.sep}{name}")
             with open(f"{output_dir}{os.sep}{name}", f"w{flag}") as f:
                 f.write(val)
         else:
