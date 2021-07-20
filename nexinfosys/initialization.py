@@ -114,6 +114,8 @@ def initialize_databases():
     if nexinfosys.get_global_configuration_variable("DB_CONNECTION_STRING"):
         db_connection_string = nexinfosys.get_global_configuration_variable("DB_CONNECTION_STRING")
         echo_sql = nexinfosys.get_global_configuration_variable("SQL_ECHO", False)
+        if isinstance(echo_sql, str):
+            echo_sql = True if echo_sql.lower() == "true" else False
         logging.debug("Connecting to metadata server")
         logging.debug(db_connection_string)
         logging.debug("-----------------------------")
@@ -222,6 +224,50 @@ def register_external_datasources():
 
 
 def get_graph_from_state(state: State, name: str):
+    def html_template():
+        return """
+        <!doctype html>
+        <html>
+        <head>
+          <title>WDS - VisJS Network</title>
+          <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+          <style type="text/css">
+            #mynetwork {
+              width: 1200px;
+              height: 800px;
+              border: 1px solid lightgray;
+            }
+          </style>
+        </head>
+        <body>
+
+        <p>
+          %s
+        </p>
+
+        <div id="mynetwork"></div>
+
+        <script type="text/javascript">
+          // create an array with nodes
+          var nodes = new vis.DataSet(%s);
+        // create an array with edges
+          var edges = new vis.DataSet(%s);
+
+          // create a network
+          var container = document.getElementById('mynetwork');
+          var data = {
+            nodes: nodes,
+            edges: edges
+          };
+          var options = {};
+          var network = new vis.Network(container, data, options);
+        </script>
+
+        </body>
+        </html>
+    """
+
     if "." in name:
         pos = name.find(".")
         extension = name[pos + 1:]
@@ -230,22 +276,31 @@ def get_graph_from_state(state: State, name: str):
     output = None
     mimetype = None
     if name == "interfaces_graph":
-        if extension == "visjs":
+        if extension in ("visjs", "html"):
             query = BasicQuery(state)
-            output = construct_flow_graph_2(state, query, None, extension)  # Version 2 !!!
-            output = generate_json(output)
-            mimetype = "application/json"
+            output = construct_flow_graph_2(state, query, None, "visjs")  # Version 2 !!!
+
+            if extension == "html":
+                output = html_template() % ("", output["nodes"], output["edges"])
+                mimetype = "application/html"
+            else:
+                output = generate_json(output)
+                mimetype = "application/json"
         elif extension == "gml":
             # Prepare GML file
             query = BasicQuery(state)
             output = construct_flow_graph_2(state, query, None, extension)  # Version 2 !!!
             mimetype = "application/text"  # TODO
     elif name == "processors_graph":
-        if extension == "visjs":
+        if extension in ("visjs", "html"):
             query = BasicQuery(state)
-            output = construct_processors_graph_2(state, query, None, True, True, False, extension)
-            output = generate_json(output)
-            mimetype = "application/json"
+            output = construct_processors_graph_2(state, query, None, True, True, False, "visjs")
+            if extension == "html":
+                output = html_template() % ("", output["nodes"], output["edges"])
+                mimetype = "application/html"
+            else:
+                output = generate_json(output)
+                mimetype = "application/json"
         elif extension == "gml":
             query = BasicQuery(state)
             output = construct_processors_graph_2(state, query, None, True, True, False, extension)

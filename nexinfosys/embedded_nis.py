@@ -293,7 +293,7 @@ class NIS:
     def query_available_datasets(self):
         def get_results_in_session(isess: InteractiveSession):
             dataset_formats = ["CSV", "XLSX", "SDMX.json"]  # , "XLSXwithPivotTable", "NISembedded", "NISdetached"]
-            graph_formats = ["VisJS", "GML"]  # , "GraphML"]
+            graph_formats = ["VisJS", "html", "GML"]  # , "GraphML"]
             ontology_formats = ["OWL"]
             geo_formats = ["GeoJSON"]
             # A reproducible session must be open, signal about it if not

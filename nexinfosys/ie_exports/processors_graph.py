@@ -95,7 +95,7 @@ def construct_processors_graph_2(state: State, query: IQueryObjects, filt: Union
                 append_processor(po.child_processor, n, processors)
             edge = dict(etype="part-of", font={"size": 7})
             edge.update(edge_part_of)
-            print(F"{cp} -> {pp} [{edge}]")
+            # print(F"{cp} -> {pp} [{edge}]")
             e.append((cp, pp, edge))
 
     if scale:
@@ -112,7 +112,7 @@ def construct_processors_graph_2(state: State, query: IQueryObjects, filt: Union
             weight = str(weight) if weight != "" else ""
             edge = dict(etype="scale", font={"size": 7}, dashes="true", label=scale.origin.name + " x " + weight +" > " + scale.destination.name, w=weight)
             edge.update(edge_scale)
-            print(F"{pp} -> {cp} [{edge}]")
+            # print(F"{pp} -> {cp} [{edge}]")
             e.append((pp, cp, edge))
 
     # NetworkX
