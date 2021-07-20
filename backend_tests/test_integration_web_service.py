@@ -26,7 +26,7 @@ import importlib
 """
 
 import nexinfosys.restful_service  # Just to remove error in the "importlib.reload" sentence below
-os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"] = "../../../nis-backend-config/nis_unittests.conf"
+os.environ[nexinfosys.cfg_file_env_var] = "../../../nis-backend-config/nis_unittests.conf"
 if "nexinfosys.restful_service" in sys.modules:
     importlib.reload(nexinfosys.restful_service)
 nexinfosys.restful_service.app.config["TESTING"] = "True"

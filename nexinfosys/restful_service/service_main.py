@@ -155,7 +155,7 @@ CORS(app,                    # CORS
      )
 
 logging.debug(f"DB_CONNECTION_STRING: {app.config['DB_CONNECTION_STRING']}\n----------------------")
-logging.debug(f'Assuming {os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"]} as configuration file')
+logging.debug(f'Assuming {os.environ[nexinfosys.cfg_file_env_var]} as configuration file')
 logging.debug(f'command_field_names = {_command_field_names}')
 
 # #####################################################################################################################

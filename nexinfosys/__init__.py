@@ -1,5 +1,7 @@
 import configparser
 import importlib
+import logging
+import traceback
 from enum import Enum
 import os
 import regex as re
@@ -10,6 +12,7 @@ from collections import namedtuple
 from attr import attrs, attrib
 
 # GLOBAL VARIABLES
+cfg_file_env_var = "MAGIC_NIS_SERVICE_CONFIG_FILE"
 engine = None
 
 # Database containing OLAP data (cache of Data Cubes)
@@ -104,8 +107,6 @@ def simple_regex(names: List[str]):
 def prepare_default_configuration(create_directories):
     def default_directories(path, tmp_path):
         return {
-            "DB_CONNECTION_STRING": f"sqlite:///{path}/nis_metadata.db",
-            "DATA_CONNECTION_STRING": f"sqlite:///{path}/nis_cached_datasets.db",
             "CASE_STUDIES_DIR": f"{path}/data/cs/",
             "FAO_DATASETS_DIR": f"{path}/data/faostat/",
             "FADN_FILES_LOCATION": f"{path}/data/fadn",
@@ -121,6 +122,7 @@ def prepare_default_configuration(create_directories):
     data_path = app_dirs.user_data_dir
     cache_path = app_dirs.user_cache_dir
     if create_directories:
+        logging.debug(f"Creating directories {data_path} and {cache_path}")
         os.makedirs(data_path, exist_ok=True)
         os.makedirs(cache_path, exist_ok=True)
 
@@ -129,10 +131,13 @@ def prepare_default_configuration(create_directories):
     for v in dirs.values():
         if v:
             if create_directories:
+                logging.debug(f"Creating directory {v}")
                 os.makedirs(v, exist_ok=True)
 
     # Default configuration
     return f"""{os.linesep.join([f'{k}="{v}"' for k, v in dirs.items()])}
+DB_CONNECTION_STRING="sqlite:///{data_path}{os.sep}nis_metadata.db"
+DATA_CONNECTION_STRING="sqlite:///{data_path}{os.sep}nis_cached_datasets.db"
 SQL_ECHO=True
 # Flask Session (server side session)
 REDIS_HOST="filesystem:local_session"
@@ -155,23 +160,33 @@ global_configuration = None
 def initialize_configuration():
     try:
         _, file_name = prepare_default_configuration(False)
-        if not os.environ.get("MAGIC_NIS_SERVICE_CONFIG_FILE"):
+        logging.debug(f"Default configuration file name: {file_name}")
+        if not os.environ.get(cfg_file_env_var):
+            logging.debug(f"{cfg_file_env_var} not defined, trying default configuration file location ({file_name}")
             found = False
             for f in [file_name]:  # f"{nexinfosys.__path__[0]}/restful_service/nis_local_dist.conf"
                 if os.path.isfile(f):
+                    logging.debug(
+                        f"Default configuration file {file_name} found, setting {cfg_file_env_var} to that file")
                     found = True
-                    os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"] = f
+                    os.environ[cfg_file_env_var] = f
                     break
             if not found:
+                logging.debug(f"Default configuration file {file_name} NOT found, will try to generate a default in that location.")
                 cfg, file_name = prepare_default_configuration(True)
-                print(f"Generating {file_name} as configuration file:\n{cfg}")
+                logging.debug(f"Generating {file_name} as configuration file with content:\n{cfg}")
                 with open(file_name, "wt") as f:
                     f.write(cfg)
-                os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"] = file_name
+                logging.debug(
+                    f"Default configuration file {file_name} generated! Setting {cfg_file_env_var} to that file")
+                os.environ[cfg_file_env_var] = file_name
+        else:
+            logging.debug(f"{cfg_file_env_var}: {os.environ[cfg_file_env_var]}")
 
     except Exception as e:
-        print("MAGIC_NIS_SERVICE_CONFIG_FILE environment variable not defined!")
+        print(f"{cfg_file_env_var} environment variable not defined!")
         print(e)
+        traceback.print_exc()
 
 
 def get_global_configuration():
@@ -182,8 +197,8 @@ def get_global_configuration():
 
         :return:
         """
-        if os.environ.get("MAGIC_NIS_SERVICE_CONFIG_FILE"):
-            fname = os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"]
+        if os.environ.get(cfg_file_env_var):
+            fname = os.environ[cfg_file_env_var]
             if os.path.exists(fname):
                 with open(fname, 'r') as f:
                     config_string = '[asection]\n' + f.read()

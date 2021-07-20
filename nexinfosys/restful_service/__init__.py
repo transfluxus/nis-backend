@@ -2,7 +2,7 @@ import logging
 
 from flask import Flask
 
-from nexinfosys import initialize_configuration
+from nexinfosys import initialize_configuration, cfg_file_env_var
 from nexinfosys.model_services import get_case_study_registry_objects
 
 nis_api_base = "/nis_api"  # Base for all RESTful calls
@@ -16,7 +16,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Initialize configuration
 initialize_configuration()
-app.config.from_envvar('MAGIC_NIS_SERVICE_CONFIG_FILE')
+app.config.from_envvar(cfg_file_env_var)
 
 
 def get_results_in_session(isess: "InteractiveSession"):
