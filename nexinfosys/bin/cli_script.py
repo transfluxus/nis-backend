@@ -1,5 +1,6 @@
 import copy
 import json
+import logging
 import os
 import re
 import tempfile
@@ -7,6 +8,10 @@ from io import BytesIO, StringIO
 from typing import List, Union, BinaryIO, Tuple
 from zipfile import ZipFile
 import fire
+import platform
+import sys
+
+print(f"Executable: {sys.executable}; V: {sys.version}; {platform.python_build()}; CONDA_PREFIX: {os.getenv('CONDA_PREFIX')}")
 
 from nexinfosys.command_generators import Issue, IType
 from nexinfosys.common.helper import download_file, generate_json
@@ -74,19 +79,21 @@ def issue_str(issue: Issue):
 def prepare_base_state(base_url: str, solve: bool, directory: str = None, force_refresh: bool = False):
     from nexinfosys import initialize_configuration
     initialize_configuration()  # Needed to make download and NIS later work properly
-    if base_url.startswith(os.sep):
-        base_url = "file://" + base_url
+    additional_slash = "/" if platform.system().lower() == "windows" else ""
+    if base_url.startswith(os.sep) or base_url[1] == ":":
+        base_url = f"file://{additional_slash}{base_url}"
+    logging.debug(f"File to be downloaded: {base_url}")
     tmp_io = download_file(base_url)
     bytes_io = set_zip_timestamp(tmp_io)
+    hash_ = hash_array(bytes_io.getvalue())
+    val_name = get_valid_name(base_url)
+    if directory is None:
+        directory = tempfile.gettempdir()
+    hash_file = f"{directory}{os.sep}base.hash.{val_name}"
+    state_file = f"{directory}{os.sep}base.state.{val_name}"
     if force_refresh:
         update = True
     else:
-        hash_ = hash_array(bytes_io.getvalue())
-        val_name = get_valid_name(base_url)
-        if directory is None:
-            directory = tempfile.gettempdir()
-        hash_file = f"{directory}{os.sep}base.hash.{val_name}"
-        state_file = f"{directory}{os.sep}base.state.{val_name}"
         if os.path.isfile(hash_file) and os.path.isfile(state_file):
             with open(hash_file, "rb") as f:
                 cached_hash = f.read()
@@ -99,7 +106,9 @@ def prepare_base_state(base_url: str, solve: bool, directory: str = None, force_
         temp_name = temp_name.name
         with open(temp_name, "wb") as f:
             f.write(bytes_io.getvalue())
-        nis, issues = read_submit_solve_nis_file("file://"+temp_name, None, solve=solve)
+        f_name = f"file://{additional_slash}{temp_name}"
+        logging.debug(f"Temporary being loaded: {f_name}")
+        nis, issues = read_submit_solve_nis_file(f_name, None, solve=solve)
         os.remove(temp_name)
         any_error = False
         for issue in issues:
@@ -198,8 +207,49 @@ def write_results(state_or_nis: Union[State, NIS], output_dir: str, datasets: Li
             print(f"[{ds['type']}.]{ds['name']}.({fmts}); ({ds['description']})")
 
 
+def set_log_level_from_cli_param(log_param: str):
+    """
+    Set global logging level to one of: Off, Info, Warn, Debug
+
+    :param log_param:
+    :return:
+    """
+    if log_param is None or log_param == "":
+        log_param = ""
+
+    level = log_param.lower()
+    if level in ("debug", "d"):
+        level = logging.DEBUG
+    elif level == "off":
+        level = logging.NOTSET
+    elif level in ("error", "err", "e"):
+        level = logging.DEBUG
+    elif level in ("info", "i"):
+        level = logging.INFO
+    elif level in ("warn", "warning", "w"):
+        level = logging.WARNING
+    elif level in ("critical", "fatal"):
+        level = logging.CRITICAL
+    else:
+        if level != "":
+            print(f"Log level not set, '{log_param}' not recognized. Valid options: Error (E, Err), Debug (D), "
+                  f"Warning (W, Warn), Info (I), Off, Critical (Fatal)")
+        level = None
+
+    if level is not None:
+        logging.basicConfig(level=level)
+
+
 class Nexinfosys:
-    def parse(self, file: str, work_path: str, datasets: str = "", force_refresh: bool = False):
+    """
+nexinfosys parse https://docs.google.com/spreadsheets/d/1BlvHI56kP2kzogKbAa8BHr2GYMfJIZTDkBaPYIfiPMQ/edit#gid=0 /home/rnebot/tmp/example1
+
+nexinfosys solve https://docs.google.com/spreadsheets/d/1C5xNGvdORWqrWL6Ux2nBXMdX51ktEDJCmFdDrbFrhX4/edit#gid=0 /home/rnebot/tmp/example1withValues
+
+nexinfosys solve https://docs.google.com/spreadsheets/d/1C5xNGvdORWqrWL6Ux2nBXMdX51ktEDJCmFdDrbFrhX4/edit#gid=0 /home/rnebot/tmp/example1withValues --datasets="flow_graph_solution.csv"
+
+    """
+    def parse(self, file: str, work_path: str, datasets: str = "", force_refresh: bool = False, log: str = None):
         """
         Parse and retrieve datasets
 
@@ -207,14 +257,16 @@ class Nexinfosys:
         :param work_path: Where to place cache and result files
         :param datasets: Comma separated list of datasets to export
         :param force_refresh: True to force parsing even if the main file has not changed
+        :param log: Set log level to one of: Error (E, Err), Debug (D), Warning (W, Warn), Info (I), Off, Critical (Fatal)
         :return:
         """
+        set_log_level_from_cli_param(log)
         os.makedirs(work_path, exist_ok=True)
         state, _, issues = prepare_base_state(file, False, work_path, force_refresh)
         print_issues("Parsing", file, issues)
         write_results(state, work_path, datasets)
 
-    def solve(self, file: str, work_path: str, datasets: str = "", force_refresh: bool = False):
+    def solve(self, file: str, work_path: str, datasets: str = "", force_refresh: bool = False, log: str = None):
         """
         Parse, solve and retrieve datasets
 
@@ -222,15 +274,17 @@ class Nexinfosys:
         :param work_path: Where to place cache and result files
         :param datasets: Comma separated list of datasets to export
         :param force_refresh: True to force parsing and solving even if the main file has not changed
+        :param log: Set log level to one of: Error (E, Err), Debug (D), Warning (W, Warn), Info (I), Off, Critical (Fatal)
         :return:
         """
+        set_log_level_from_cli_param(log)
         os.makedirs(work_path, exist_ok=True)
         state, _, issues = prepare_base_state(file, True, work_path, force_refresh)
         print_issues("Solving", file, issues)
         write_results(state, work_path, datasets)
 
     def solve_dynamic_scenario(self, file: str, work_path: str, params_file_path: str = "",
-                               datasets: str = "", force_refresh: bool = False):
+                               datasets: str = "", force_refresh: bool = False, log: str = None):
         """
         Run (solve) dynamic scenario and get output datasets
 
@@ -239,8 +293,10 @@ class Nexinfosys:
         :param params_file_path: Path of the JSON file where parameters are specified. If empty, a sample params file is output to screen
         :param datasets: Comma separated list of datasets to export
         :param force_refresh: True to force parsing and solving even if the main file has not changed
+        :param log: Set log level to one of: Error (E, Err), Debug (D), Warning (W, Warn), Info (I), Off, Critical (Fatal)
         :return:
         """
+        set_log_level_from_cli_param(log)
         os.makedirs(work_path, exist_ok=True)
         state, _, issues = prepare_base_state(file, True, work_path, force_refresh)
         print_issues("Dynamic scenario", file, issues)
@@ -263,7 +319,6 @@ class Nexinfosys:
 
 
 def main():
-    import platform
     os.environ["PAGER"] = "cat" if platform.system().lower() != "windows" else "-"
     fire.Fire(Nexinfosys)
 
