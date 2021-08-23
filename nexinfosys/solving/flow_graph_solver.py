@@ -26,6 +26,7 @@ Before the elaboration of flow graphs, several preparatory steps:
 
 """
 import logging
+import math
 import traceback
 from collections import defaultdict
 from copy import deepcopy
@@ -33,6 +34,7 @@ from enum import Enum
 from typing import Dict, List, Set, Any, Tuple, Union, Optional, NamedTuple, Generator, NoReturn, Sequence
 import lxml
 import networkx as nx
+import numpy as np
 import pandas as pd
 from lxml import etree
 
@@ -1386,31 +1388,9 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                 except SolvingException as e:
                     return [Issue(IType.ERROR, f"Scenario '{scenario_name}' - period '{time_period}'. {e.args[0]}")]
 
-        #
-        # ---------------------- CREATE PD.DATAFRAMES PREVIOUS TO OUTPUT DATASETS  ----------------------
-        #
-
-        data = {result_key.as_string_tuple() + node.full_key:
-                    {"RoegenType": node.roegen_type if node else "-",
-                     "Value": float_computed.value.val,
-                     "Computed": float_computed.computed.name,
-                     "ComputationSource": float_computed.computation_source.name if float_computed.computation_source else None,
-                     "Observer": float_computed.observer,
-                     "Expression": str(float_computed.value.exp),
-                     "Unit": node.unit if node else "-",
-                     "Level": node.processor.attributes.get('level', '') if node else "-",
-                     "System": node.system if node else "-",
-                     "Subsystem": node.subsystem.name if node else "-",
-                     "Sphere": node.sphere if node else "-"
-                     }
-                for result_key, node_floatcomputed_dict in total_results.items()
-                for node, float_computed in node_floatcomputed_dict.items()}
-
-        export_solver_data(datasets, data, dynamic_scenario, global_state, global_parameters, problem_statement)
-
-        dataframe_sankey = compute_dataframe_sankey(total_results)
-        dataset_name = "flow_graph_solution_sankey"
-        datasets[dataset_name] = get_dataset(dataframe_sankey, dataset_name, "Flow Graph Solution - Sankey")
+        # Prepare all output information
+        #  - Indicators are calculated inside
+        export_solver_data(datasets, total_results, dynamic_scenario, global_state, global_parameters, problem_statement)
 
         return issues
     except SolvingException as e:
@@ -1643,8 +1623,25 @@ def compute_flow_and_scale_relation_graphs(registry, interface_nodes: Set[Interf
     return relations_flow, relations_scale, relations_scale_change
 
 
-def export_solver_data(datasets, data, dynamic_scenario, state, global_parameters, problem_statement) -> NoReturn:
+def export_solver_data(datasets, results, dynamic_scenario, state, global_parameters, problem_statement) -> NoReturn:
     glb_idx, _, _, _, _ = get_case_study_registry_objects(state)
+
+    data = {result_key.as_string_tuple() + node.full_key:
+                {"RoegenType": node.roegen_type if node else "-",
+                 "Value": float_computed.value.val,
+                 "Computed": float_computed.computed.name,
+                 "ComputationSource": float_computed.computation_source.name if float_computed.computation_source else None,
+                 "Observer": float_computed.observer,
+                 "Expression": str(float_computed.value.exp),
+                 "Unit": node.unit if node else "-",
+                 "Level": node.processor.attributes.get('level', '') if node else "-",
+                 "System": node.system if node else "-",
+                 "Subsystem": node.subsystem.name if node else "-",
+                 "Sphere": node.sphere if node else "-"
+                 }
+            for result_key, node_floatcomputed_dict in results.items()
+            for node, float_computed in node_floatcomputed_dict.items()}
+
     df = pd.DataFrame.from_dict(data, orient='index')
 
     # Round all values to 3 decimals
@@ -1653,13 +1650,15 @@ def export_solver_data(datasets, data, dynamic_scenario, state, global_parameter
     index_names = [f.title() for f in
                    ResultKey._fields] + InterfaceNode.full_key_labels()
     df.index.names = index_names
+
     # Sort the dataframe based on indexes. Not necessary, only done for debugging purposes.
     df = df.sort_index(level=index_names)
 
     # print(df)
 
-    # Create Matrix to Sankey graph
+    # Create Matrices for Sankey graphs
     ds_flow_values = prepare_sankey_dataset(glb_idx, df)
+    dataframe_sankey = compute_dataframe_sankey(results)
 
     # Convert model to XML and to DOM tree. Used by XPath expressions (Matrices and Global Indicators)
     _, p_map = export_model_to_xml(glb_idx)  # p_map: {(processor_full_path_name, Processor), ...}
@@ -1686,7 +1685,7 @@ def export_solver_data(datasets, data, dynamic_scenario, state, global_parameter
     # Prepare Benchmarks to Stakeholders DataFrame
     ds_stakeholders = prepare_benchmarks_to_stakeholders(benchmarks)  # Find all benchmarks. For each benchmark, create a row per stakeholder -> return the dataframe
 
-    # Prepare Matrices
+    # Prepare Indicator Matrices
     # TODO df_attributes
     matrices = prepare_matrix_indicators(matrix_indicators, glb_idx, dom_tree, p_map, df, df_local_indicators, dynamic_scenario)
 
@@ -1697,6 +1696,7 @@ def export_solver_data(datasets, data, dynamic_scenario, state, global_parameter
     if not dynamic_scenario:
         ds_name = "flow_graph_solution"
         ds_flows_name = "flow_graph_solution_edges"
+        ds_sankey_name = "flow_graph_solution_sankey"
         ds_indicators_name = "flow_graph_solution_indicators"
         df_global_indicators_name = "flow_graph_global_indicators"
         ds_benchmarks_name = "flow_graph_solution_benchmarks"
@@ -1705,6 +1705,7 @@ def export_solver_data(datasets, data, dynamic_scenario, state, global_parameter
     else:
         ds_name = "dyn_flow_graph_solution"
         ds_flows_name = "dyn_flow_graph_solution_edges"
+        ds_sankey_name = "dyn_flow_graph_solution_sankey"
         ds_indicators_name = "dyn_flow_graph_solution_indicators"
         df_global_indicators_name = "dyn_flow_graph_global_indicators"
         ds_benchmarks_name = "dyn_flow_graph_solution_benchmarks"
@@ -1713,6 +1714,7 @@ def export_solver_data(datasets, data, dynamic_scenario, state, global_parameter
 
     for d, name, label in [(df, ds_name, "Flow Graph Solver - Interfaces"),
                            (ds_flow_values, ds_flows_name, "Flow Graph Solver Edges - Interfaces"),
+                           (dataframe_sankey, ds_sankey_name, "Flow Graph Solution - Sankey"),
                            (df_local_indicators, ds_indicators_name, "Flow Graph Solver - Local Indicators"),
                            (df_global_indicators, df_global_indicators_name, "Flow Graph Solver - Global Indicators"),
                            (ds_benchmarks, ds_benchmarks_name, "Flow Graph Solver - Local Benchmarks"),
@@ -1843,21 +1845,24 @@ def calculate_local_scalar_indicators(indicators: List[Indicator],
     :param results: Result of the graph solving process ("flow_graph_solution")
     :param global_parameters: List of parameter definitions
     :param problem_statement: Object with a list of scenarios (defining Parameter sets)
+    :param global_state: Whole model State (used to obtain the PartialRetrievalDictionary)
     :return: pd.DataFrame with all the local indicators
     """
 
     # The "columns" in the index of "results" are:
-    # 'Scenario', 'Period', 'Scope', 'Processor', 'Interface', 'Orientation'
-    # Group by: 'Scenario', 'Period', 'Scope', 'Processor'
+    # 'Scenario', 'System', 'Period', 'Scope', 'Processor', 'Interface', 'Orientation'
+    # Group by: 'Scenario', 'System', 'Period', 'Scope', 'Processor'
     # Rearrange: 'Interface' and 'Orientation'
-    idx_names = ["Scenario", "Period", "Scope", "Processor"]  # Changing factors
+    idx_names = ["Scenario", "System", "Period", "Scope", "Processor"]  # Changing factors
 
     def calculate_local_scalar_indicator(indicator: Indicator) -> pd.DataFrame:
         """
 
         :param indicator:
+        :param account_nas:
         :return:
         """
+        account_nas = indicator._account_na  # If True, account NAvs, NAps and N, for each calculated indicator
 
         df = results
 
@@ -1889,40 +1894,49 @@ def calculate_local_scalar_indicators(indicators: List[Indicator],
                 else:
                     d = {k.lower(): v for k, v in zip(ifaces, values)}
                     d.update({f"{k}_{k2}".lower(): v for k, k2, v in zip(ifaces, orient, values)})
-            else:
-                # Iterate through available values in a single processor
-                for row, sdf in g.iterrows():
-                    iface = row[4]  # InterfaceType
-                    orientation = row[5]  # Orientation
-                    iface_orientation = iface + "_" + orientation
-                    if iface_orientation in d:
-                        logging.debug(f"{iface_orientation} found to already exist!")
-                    d[iface_orientation] = sdf["Value"]
-                    if iface not in d:
-                        d[iface] = sdf["Value"]  # First appearance allowed, insert, others ignored
-                    if not case_sensitive:
-                        d = {k.lower(): v for k, v in d.items()}
+                # If NAs accounting is wanted, add undefined interfaces (declared without a value) as NaN
+                if account_nas:
+                    # Find processor(s)
+                    processor = registry.get(Processor.partial_key(t[4]))[0]
+                    # Add interfaces which are currently not
+                    for iface in processor.factors:
+                        if case_sensitive:
+                            if iface.name not in d:
+                                d[iface.name] = math.nan
+                        else:
+                            if iface.name.lower() not in d:
+                                d[iface.name.lower()] = math.nan
 
             # Include parameters (priority over Interfaces)
             d.update(params)
 
             state = State(d)
             state.set("_lcia_methods", global_state.get("_lcia_methods"))
-            val, variables = ast_evaluator(ast, state, None, issues)
+            if account_nas:
+                # TODO If an interface is declared, put a np.NaN, at this point
+                # TODO If an interface is not declared, assume zero. How to differentiate between parameter and
+                #      interface, in Scalar Indicator expressions?
+                # TODO Add all Processor interfaces with an np.NaN
+                pass
+            # Evaluate!!
+            val, variables = ast_evaluator(ast, state, None, issues,
+                                           account_nas_name=indicator.name if account_nas else None)
             if val is not None:  # If it was possible to evaluate ... append a new row
-                if isinstance(val, dict):  # LCIA method returns a Dict
+                if isinstance(val, dict):  # LCIA method returns a Dict, or any formula when "account_nas=True"
                     for k, v in val.items():
                         l = list(t)
                         l.append(k)
                         t2 = tuple(l)
-                        new_df_rows_idx.append(t2)  # (scenario, period, scope, processor)
-                        new_df_rows_data.append((v, None))  # (indicator, value, unit)
+                        # TODO processor name may be "system::processor"??
+                        new_df_rows_idx.append(t2)  # (scenario, system, period, scope, processor, INDICATOR)
+                        new_df_rows_data.append((v, None))  # (value, unit)
                 else:
                     l = list(t)
                     l.append(indicator.name)
                     t2 = tuple(l)
-                    new_df_rows_idx.append(t2)  # (scenario, period, scope, processor)
-                    new_df_rows_data.append((val, None))  # (indicator, value, unit)
+                    # TODO processor name may be "system::processor"??
+                    new_df_rows_idx.append(t2)  # (scenario, system, period, scope, processor, INDICATOR)
+                    new_df_rows_data.append((val, None))  # (value, unit)
         # print(issues)
         # Construct pd.DataFrame with the result of the scalar indicator calculation
         df2 = pd.DataFrame(data=new_df_rows_data,
@@ -1931,6 +1945,8 @@ def calculate_local_scalar_indicators(indicators: List[Indicator],
         return df2
 
     # -- calculate_local_scalar_indicators --
+    registry, _, _, _, _ = get_case_study_registry_objects(global_state)
+
     idx_to_change = ["Interface"]
     results.reset_index(idx_to_change, inplace=True)
 
@@ -1969,16 +1985,17 @@ def calculate_global_scalar_indicators(indicators: List[Indicator],
     """
 
     # The "columns" in the index of "results" are:
-    # 'Scenario', 'Period', 'Scope', 'Processor', 'Interface', 'Orientation'
+    # 'Scenario', 'System', 'Period', 'Scope', 'Processor', 'Interface', 'Orientation'
     # Group by: 'Scenario', 'Period'
     # Aggregator function uses a "Processors selector" and a "Scope parameter"
     # Then, only one Interface(and its Orientation) allowed
     # Filter the passed group by processor and scope, by Interface and Orientation
     # Aggregate the Value column according of remaining rows
-    idx_names = ["Scenario", "Period"]  # , "Scope"
+    idx_names = ["Scenario", "Period"]  # , "Scope", "System"
 
     def calculate_global_scalar_indicator(indicator: Indicator) -> pd.DataFrame:
         """
+        One global indicator
 
         :param indicator:
         :return:

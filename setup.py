@@ -44,7 +44,7 @@ twine upload --skip-existing dist/*
 https://pypi.org/project/nexinfosys/
 """
 package_name = 'nexinfosys'
-version = '0.64'
+version = '0.75'
 
 
 def parse_requirements(strs):

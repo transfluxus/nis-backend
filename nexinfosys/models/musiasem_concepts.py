@@ -1523,12 +1523,15 @@ class Processor(Identifiable, Nameable, Taggable, Qualifiable, Automatable, Obse
         return "_aka" in composite_key
 
     @staticmethod
-    def partial_key(name: str=None, ident: str=None):
+    def partial_key(name: str=None, ident: str=None, system: str=None):
         d = dict(_t="p")
         if name:
             d["_n"] = name
         if ident:
             d["__id"] = ident
+        if system:
+            d["_y"] = system
+
         return d
 
     def key(self):
@@ -1538,7 +1541,7 @@ class Processor(Identifiable, Nameable, Taggable, Qualifiable, Automatable, Obse
         """
         # Name here is not a unique identifier. The primary key is the "__id" and "_t" helps to reduce search options
         # when retrieving processors
-        return {"_t": "p", "_n": self.name, "__id": self.ident}
+        return {"_t": "p", "_n": self.name, "__id": self.ident, "_y": self.processor_system}
 
 
 class Factor(Identifiable, Nameable, Taggable, Qualifiable, Observable, Automatable, Geolocatable, Encodable):
@@ -2815,7 +2818,7 @@ class Indicator(Nameable, Identifiable, Encodable):
     """
     def __init__(self, name: str, formula: str, from_indicator: Optional["Indicator"], processors_selector: str,
                  benchmarks: List[Benchmark], indicator_category: IndicatorCategories, description=None,
-                 indicators_group=None, unit=None, unit_label=None, source=None):
+                 indicators_group=None, unit=None, unit_label=None, source=None, account_na=None):
         Identifiable.__init__(self)
         Nameable.__init__(self, name)
         self._formula = formula
@@ -2828,6 +2831,7 @@ class Indicator(Nameable, Identifiable, Encodable):
         self._unit = unit
         self._unit_label = unit_label
         self._source = source
+        self._account_na = account_na is not None and account_na.lower() == "yes"
 
     def encode(self):
         d = Encodable.parents_encode(self, __class__)
@@ -2842,6 +2846,7 @@ class Indicator(Nameable, Identifiable, Encodable):
             'indicators_group': self._indicators_group,
             'unit': self._unit,
             'unit_label': self._unit_label,
+            'account_na': self._account_na,
             'source': self._source
         })
 

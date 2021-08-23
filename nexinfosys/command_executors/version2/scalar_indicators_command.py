@@ -52,5 +52,6 @@ class ScalarIndicatorsCommand(BasicCommand):
                               fields["indicators_group"],
                               fields["unit"],
                               fields["unit_label"],
-                              fields["source"])
+                              fields["source"],
+                              fields["account_na"])
         self._glb_idx.put(indicator.key(), indicator)

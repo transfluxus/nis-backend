@@ -6,19 +6,20 @@ https://gist.github.com/cynici/5865326
 
 """
 import importlib
+import math
 import re
 from typing import Dict, Tuple, Union, List
-import pandas as pd
-import numpy as np
-import lxml
-from nexinfosys import case_sensitive, ureg
-from pyparsing import quotedString
 
-from nexinfosys.model_services import State
+import lxml
+import numpy as np
+import pandas as pd
+
+from nexinfosys import case_sensitive
 from nexinfosys.command_generators import global_functions, IType, Issue, IssueLocation, parser_field_parsers
 from nexinfosys.command_generators.parser_field_parsers import string_to_ast, arith_boolean_expression, key_value_list, \
     simple_ident, expression_with_parameters, number_interval, arith_boolean_expression_with_less_tokens
 from nexinfosys.common.helper import create_dictionary, PartialRetrievalDictionary, strcmp, is_float
+from nexinfosys.model_services import State
 from nexinfosys.models.musiasem_concepts import ExternalDataset, FactorType, Processor, Hierarchy
 
 
@@ -100,7 +101,7 @@ def get_nis_name(original_name):
     return prefix + re.sub("[^0-9a-zA-Z_]", "_", remainder)
 
 
-def call_udif_function(function_name, state: State=None):
+def call_udif_function(function_name, state: State = None):
     mod_name, func_name = function_name.rsplit('.', 1)
     mod = importlib.import_module(mod_name)
     func = getattr(mod, func_name)
@@ -117,8 +118,9 @@ def call_udif_function(function_name, state: State=None):
 lcia_method_names = {}
 
 
-def lcia_method(indicator: str, method: str=None, horizon: str=None, compartment: str=None, subcompartment: str=None,
-                state: State=None, lcia_methods: PartialRetrievalDictionary=None):
+def lcia_method(indicator: str, method: str = None, horizon: str = None, compartment: str = None,
+                subcompartment: str = None,
+                state: State = None, lcia_methods: PartialRetrievalDictionary = None):
     """
 
     :param indicator: Indicator name
@@ -199,8 +201,7 @@ def lcia_method(indicator: str, method: str=None, horizon: str=None, compartment
     return res
 
 
-def obtain_processors(xquery: str=None, processors_dom=None, processors_map=None):
-
+def obtain_processors(xquery: str = None, processors_dom=None, processors_map=None):
     if xquery:
         try:
             processors = set()
@@ -233,7 +234,6 @@ def get_adapted_case_dataframe_filter(df, column, values):
 def obtain_subset_of_processors(processors_selector: str, serialized_model: lxml.etree._ElementTree,
                                 registry: PartialRetrievalDictionary,
                                 p_map: Dict[str, Processor], df: Union[List, pd.DataFrame]) -> pd.DataFrame:
-
     processors = obtain_processors(processors_selector, serialized_model, p_map)
 
     if len(p_map) == len(processors):
@@ -274,7 +274,8 @@ def obtain_subset_of_processors(processors_selector: str, serialized_model: lxml
     return results, processors
 
 
-def aggregator_generic(funct, field: str, xquery: str=None, scope: str='Total', processors_dom=None, processors_map=None, df_group=None, df_indicators_group=None):
+def aggregator_generic(funct, field: str, xquery: str = None, scope: str = 'Total', processors_dom=None,
+                       processors_map=None, df_group=None, df_indicators_group=None):
     """
     AGGREGATE "field" for all processors meeting the XQuery and scope, applying aggregator "funct"
     :param field:
@@ -309,44 +310,60 @@ def aggregator_generic(funct, field: str, xquery: str=None, scope: str='Total', 
         return None
 
 
-def aggregator_sum(field: str, xquery: str=None, scope: str='Total', processors_dom=None, processors_map=None, df_group=None, df_indicators_group=None):
-    return aggregator_generic(np.nansum, field, xquery, scope, processors_dom, processors_map, df_group, df_indicators_group)
+def aggregator_sum(field: str, xquery: str = None, scope: str = 'Total', processors_dom=None, processors_map=None,
+                   df_group=None, df_indicators_group=None):
+    return aggregator_generic(np.nansum, field, xquery, scope, processors_dom, processors_map, df_group,
+                              df_indicators_group)
 
 
-def aggregator_avg(field: str, xquery: str=None, scope: str='Total', processors_dom=None, processors_map=None, df_group=None, df_indicators_group=None):
-    return aggregator_generic(np.nanavg, field, xquery, scope, processors_dom, processors_map, df_group, df_indicators_group)
+def aggregator_avg(field: str, xquery: str = None, scope: str = 'Total', processors_dom=None, processors_map=None,
+                   df_group=None, df_indicators_group=None):
+    return aggregator_generic(np.nanavg, field, xquery, scope, processors_dom, processors_map, df_group,
+                              df_indicators_group)
 
 
-def aggregator_max(field: str, xquery: str=None, scope: str='Total', processors_dom=None, processors_map=None, df_group=None, df_indicators_group=None):
-    return aggregator_generic(np.nanmax, field, xquery, scope, processors_dom, processors_map, df_group, df_indicators_group)
+def aggregator_max(field: str, xquery: str = None, scope: str = 'Total', processors_dom=None, processors_map=None,
+                   df_group=None, df_indicators_group=None):
+    return aggregator_generic(np.nanmax, field, xquery, scope, processors_dom, processors_map, df_group,
+                              df_indicators_group)
 
 
-def aggregator_min(field: str, xquery: str=None, scope: str='Total', processors_dom=None, processors_map=None, df_group=None, df_indicators_group=None):
-    return aggregator_generic(np.nanmin, field, xquery, scope, processors_dom, processors_map, df_group, df_indicators_group)
+def aggregator_min(field: str, xquery: str = None, scope: str = 'Total', processors_dom=None, processors_map=None,
+                   df_group=None, df_indicators_group=None):
+    return aggregator_generic(np.nanmin, field, xquery, scope, processors_dom, processors_map, df_group,
+                              df_indicators_group)
 
 
-def aggregator_count(field: str, xquery: str=None, scope: str='Total', processors_dom=None, processors_map=None, df_group=None, df_indicators_group=None):
-    return aggregator_generic(lambda v: len(v), field, xquery, scope, processors_dom, processors_map, df_group, df_indicators_group)
+def aggregator_count(field: str, xquery: str = None, scope: str = 'Total', processors_dom=None, processors_map=None,
+                     df_group=None, df_indicators_group=None):
+    return aggregator_generic(lambda v: len(v), field, xquery, scope, processors_dom, processors_map, df_group,
+                              df_indicators_group)
 
 
-def aggregator_nan_count(field: str, xquery: str=None, scope: str='Total', processors_dom=None, processors_map=None, df_group=None, df_indicators_group=None):
-    return aggregator_generic(lambda v: sum(np.isnan(v)), field, xquery, scope, processors_dom, processors_map, df_group, df_indicators_group)
+def aggregator_nan_count(field: str, xquery: str = None, scope: str = 'Total', processors_dom=None, processors_map=None,
+                         df_group=None, df_indicators_group=None):
+    return aggregator_generic(lambda v: sum(np.isnan(v)), field, xquery, scope, processors_dom, processors_map,
+                              df_group, df_indicators_group)
 
 
 # Comparison operators
 opMap = {
-        "<": lambda a, b: a < b,
-        "<=": lambda a, b: a <= b,
-        ">": lambda a, b: a > b,
-        ">=": lambda a, b: a >= b,
-        "==": lambda a, b: a == b,
-        "=": lambda a, b: a == b,
-        "!=": lambda a, b: a != b,
-        "<>": lambda a, b: a != b,
-        }
+    "<": lambda a, b: a < b,
+    "<=": lambda a, b: a <= b,
+    ">": lambda a, b: a > b,
+    ">=": lambda a, b: a >= b,
+    "==": lambda a, b: a == b,
+    "=": lambda a, b: a == b,
+    "!=": lambda a, b: a != b,
+    "<>": lambda a, b: a != b,
+}
+
+na_ops = ("+", "-", "u+", "u-")  # Operators admitting evalution at nest level 0
 
 
-def ast_evaluator(exp: Dict, state: State, obj, issue_lst, evaluation_type="numeric", atomic_h_names=False, allowed_functions=global_functions) -> Union[Tuple[float, List[str]], Tuple[str, float, List[str]]]:
+def ast_evaluator(exp: Dict, state: State, obj, issue_lst, atomic_h_names=False,
+                  allowed_functions=global_functions, account_nas_name: str = None,
+                  nest_level=0) -> Union[Tuple[float, List[str]], Tuple[str, float, List[str]]]:
     """
     Numerically evaluate the result of the parse of "expression" rule (not valid for the other "expression" rules)
 
@@ -354,140 +371,127 @@ def ast_evaluator(exp: Dict, state: State, obj, issue_lst, evaluation_type="nume
     :param state: "State" used to obtain variables/objects
     :param obj: An object used when evaluating hierarchical variables. simple names, functions and datasets are considered members of this object
     :param issue_lst: List in which issues have to be annotated
-    :param evaluation_type: "numeric" for full evaluation, "static" to return True if the expression can be evaluated
-            (explicitly mentioned variables are defined previously)
     :param atomic_h_names: If True, treat variable names as atomic (False processes them part by part, from left to right). Used in dataset expansion
+    :param allowed_functions: Set of allowed function names (and their definitions)
+    :param account_nas_name: If True, each evaluation at top level returns 4 results: the evaluation, number of variables,
+                        number of not available and number of not applicable (i.e., like zero)
+    :param nest_level: Recursive level of the function. Used to allow evaluation of addends when they are NotAvailable
     :return: value (scalar EXCEPT for named parameters, which return a tuple "parameter name - parameter value"), list of unresolved variables
     """
-    val = None
-    unresolved_vars = set()
+    ret_var = None
+    ret_val = None
+    # TODO dict()
+    #      Resolved vars will be "Av"
+    #      Each unresolved var will be marked as "NAv" (not-available) or "NAp" (not-applicable, with counts as zero)
+    involved_vars = dict()
     if "type" in exp:
         t = exp["type"]
-        if t in ("int", "float", "str", "boolean"):
-            if evaluation_type == "numeric":
-                return exp["value"], unresolved_vars
-            elif evaluation_type == "static":
-                return unresolved_vars
-        elif t == "named_parameter":
-            # This one returns a tuple (parameter name, parameter value, unresolved variables)
-            v, tmp = ast_evaluator(exp["value"], state, obj, issue_lst, evaluation_type, atomic_h_names)
-            unresolved_vars.update(tmp)
-            return exp["param"], v, unresolved_vars
+        if t in ("int", "float", "str", "boolean"):  # Literals
+            ret_val = exp["value"]
         elif t == "key_value_list":
             d = create_dictionary()
             for k, v in exp["parts"].items():
-                d[k], tmp = ast_evaluator(v, state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions)
-                unresolved_vars.update(tmp)
-            return d, unresolved_vars
+                d[k], tmp = ast_evaluator(v, state, obj, issue_lst, atomic_h_names, allowed_functions,
+                                          account_nas_name=account_nas_name, nest_level=nest_level + 1)
+                involved_vars.update(tmp)
+            ret_val = d
+        elif t == "named_parameter":  # Named parameters, special!
+            # This one returns a tuple (parameter name, parameter value, unresolved variables)
+            v, tmp = ast_evaluator(exp["value"], state, obj, issue_lst, atomic_h_names,
+                                   account_nas_name=account_nas_name, nest_level=nest_level + 1)
+            involved_vars.update(tmp)
+            # Name of the parameter, its value, then "unresolved_vars"
+            ret_var = exp["param"]
+            ret_val = v
         elif t == "dataset":
             # Function parameters and Slice parameters
-            func_params = [ast_evaluator(p, state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions) for p in exp["func_params"]]
-            slice_params = [ast_evaluator(p, state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions) for p in exp["slice_params"]]
+            func_params = [ast_evaluator(p, state, obj, issue_lst, atomic_h_names, allowed_functions,
+                                         account_nas_name=account_nas_name, nest_level=nest_level + 1) for p in
+                           exp["func_params"]]
+            slice_params = [ast_evaluator(p, state, obj, issue_lst, atomic_h_names, allowed_functions,
+                                          account_nas_name=account_nas_name, nest_level=nest_level + 1) for p in
+                            exp["slice_params"]]
 
-            if evaluation_type == "numeric":
-                # Find dataset named "exp["name"]"
-                if obj is None:
-                    # Global dataset
-                    ds = state.get(exp["name"], exp["ns"])
-                    if not ds:
-                        issue_lst.append((3, "Global dataset '" + exp["name"] + "' not found"))
-                else:
-                    # Dataset inside "obj"
-                    try:
-                        ds = getattr(obj, exp["name"])
-                    except:
-                        ds = None
-                    if not ds:
-                        issue_lst.append((3, "Dataset '" + exp["name"] + "' local to "+str(obj)+" not found"))
+            # Find dataset named "exp["name"]"
+            if obj is None:
+                # Global dataset
+                ds = state.get(exp["name"], exp["ns"])
+                if not ds:
+                    issue_lst.append((3, "Global dataset '" + exp["name"] + "' not found"))
+            else:
+                # Dataset inside "obj"
+                try:
+                    ds = getattr(obj, exp["name"])
+                except:
+                    ds = None
+                if not ds:
+                    issue_lst.append((3, "Dataset '" + exp["name"] + "' local to " + str(obj) + " not found"))
 
-                if ds and isinstance(ds, ExternalDataset):
-                    return ds.get_data(None, slice_params, None, None, func_params)
-                else:
-                    return None
-            elif evaluation_type == "static":
-                # Find dataset named "exp["name"]"
-                if obj is None:
-                    # Global dataset
-                    ds = state.get(exp["name"], exp["ns"])
-                    if not ds:
-                        issue_lst.append((3, "Global dataset '" + exp["name"] + "' not found"))
-                    else:
-                        ds = True
-                else:
-                    ds = True  # We cannot be sure it will be found, but do not break the evaluation
-                # True if the Dataset is True, and the parameters are True
-                return ds and all(func_params) and all(slice_params)
+            involved_vars = None
+            if ds and isinstance(ds, ExternalDataset):
+                ret_val = ds.get_data(None, slice_params, None, None, func_params)
+            else:
+                ret_val = None
         elif t == "function":  # Call function
             # First, obtain the Parameters
             args = []
             kwargs = {}
             can_resolve = True
-            for p in [ast_evaluator(p, state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions) for p in exp["params"]]:
+            for p in [ast_evaluator(p, state, obj, issue_lst, atomic_h_names, allowed_functions,
+                                    account_nas_name=account_nas_name, nest_level=nest_level + 1) for p in
+                      exp["params"]]:
                 if len(p) == 3:
                     kwargs[p[0]] = p[1]
                     tmp = p[2]
                 else:
                     args.append(p[0])
                     tmp = p[1]
-                unresolved_vars.update(tmp)
+                involved_vars.update(tmp)
                 if len(tmp) > 0:
                     can_resolve = False
 
-            if evaluation_type == "numeric":
-                if obj is None:
-                    # Check if it can be resolved (all variables specified)
-                    # Check if global function exists, then call it. There are no function namespaces (at least for now)
-                    if can_resolve and exp["name"] in allowed_functions:
-                        _f = allowed_functions[exp["name"]]
-                        mod_name, func_name = _f["full_name"].rsplit('.', 1)
-                        mod = importlib.import_module(mod_name)
-                        func = getattr(mod, func_name)
-                        kwargs.update(_f["kwargs"])
-                        for sp_kwarg, name in _f.get("special_kwargs", {}).items():
-                            if sp_kwarg == "PartialRetrievalDictionary":
-                                kwargs[name] = state.get("_glb_idx")
-                            elif sp_kwarg == "ProcessorsDOM":
-                                kwargs[name] = state.get("_processors_dom")
-                            elif sp_kwarg == "ProcessorsMap":
-                                kwargs[name] = state.get("_processors_map")
-                            elif sp_kwarg == "DataFrameGroup":
-                                kwargs[name] = state.get("_df_group")
-                            elif sp_kwarg == "IndicatorsDataFrameGroup":
-                                kwargs[name] = state.get("_df_indicators_group")
-                            elif sp_kwarg == "IndicatorState":
-                                kwargs[name] = state
-                            elif sp_kwarg == "LCIAMethods":
-                                kwargs[name] = state.get("_lcia_methods")
+            if obj is None:
+                # Check if it can be resolved (all variables specified)
+                # Check if global function exists, then call it. There are no function namespaces (at least for now)
+                if can_resolve and exp["name"] in allowed_functions:
+                    _f = allowed_functions[exp["name"]]
+                    mod_name, func_name = _f["full_name"].rsplit('.', 1)
+                    mod = importlib.import_module(mod_name)
+                    func = getattr(mod, func_name)
+                    kwargs.update(_f["kwargs"])
+                    for sp_kwarg, name in _f.get("special_kwargs", {}).items():
+                        if sp_kwarg == "PartialRetrievalDictionary":
+                            kwargs[name] = state.get("_glb_idx")
+                        elif sp_kwarg == "ProcessorsDOM":
+                            kwargs[name] = state.get("_processors_dom")
+                        elif sp_kwarg == "ProcessorsMap":
+                            kwargs[name] = state.get("_processors_map")
+                        elif sp_kwarg == "DataFrameGroup":
+                            kwargs[name] = state.get("_df_group")
+                        elif sp_kwarg == "IndicatorsDataFrameGroup":
+                            kwargs[name] = state.get("_df_indicators_group")
+                        elif sp_kwarg == "IndicatorState":
+                            kwargs[name] = state
+                        elif sp_kwarg == "LCIAMethods":
+                            kwargs[name] = state.get("_lcia_methods")
+                        elif sp_kwarg == "AccountNA":
+                            kwargs[name] = account_nas_name
 
-                        # CALL FUNCTION!!
-                        try:
-                            obj = func(*args, **kwargs)
-                        except Exception as e:
-                            obj = None
-                            issue_lst.append(str(e))
-                else:
-                    # CALL FUNCTION LOCAL TO THE OBJECT (a "method")
+                    # CALL FUNCTION!!
                     try:
-                        obj = getattr(obj, exp["name"])
-                        obj = obj(*args, **kwargs)
+                        obj = func(*args, **kwargs)
                     except Exception as e:
                         obj = None
                         issue_lst.append(str(e))
-                return obj, unresolved_vars
-            elif evaluation_type == "static":
-                if obj is None:
-                    # Check if global function exists, then call it. There are no function namespaces (at least for now)
-                    if exp["name"] in allowed_functions:
-                        _f = allowed_functions[exp["name"]]
-                        mod_name, func_name = _f["full_name"].rsplit('.', 1)
-                        mod = importlib.import_module(mod_name)
-                        func = getattr(mod, func_name)
-                        # True if everything is True: function defined and all parameters are True
-                        obj = func and all(args) and all(kwargs.values())
-                else:
-                    # Call local function (a "method")
-                    obj = True
-                return obj
+            else:
+                # CALL FUNCTION LOCAL TO THE OBJECT (a "method")
+                try:
+                    obj = getattr(obj, exp["name"])
+                    obj = obj(*args, **kwargs)
+                except Exception as e:
+                    obj = None
+                    issue_lst.append(str(e))
+            ret_val = obj
         elif t == "h_var":
             # Evaluate in sequence
             obj = None
@@ -502,11 +506,21 @@ def ast_evaluator(exp: Dict, state: State, obj, issue_lst, evaluation_type="nume
                     if obj is None:
                         obj = state.get(o, _namespace)
                         if obj is None:
-                            issue_lst.append((3, "'" + o + "' is not globally declared in namespace '" + (_namespace if _namespace else "default") + "'"))
+                            issue_lst.append((3, "'" + o + "' is not globally declared in namespace '" + (
+                                _namespace if _namespace else "default") + "'"))
                             if _namespace:
-                                unresolved_vars.add(_namespace+"::"+o)
+                                involved_vars[_namespace + "::" + o] = "NAp"
                             else:
-                                unresolved_vars.add(o)
+                                involved_vars[o] = "NAp"
+                            if account_nas_name:
+                                obj = 0  # If not defined, the value is zero
+                        else:  # Value defined, check if it is a NAv (NaN)
+                            if isinstance(obj, (float, int)):  # AccountNAs is valid only for float's
+                                if math.isnan(obj):
+                                    involved_vars[o] = "NAv"
+                                else:
+                                    if account_nas_name:
+                                        involved_vars[o] = "Av"
                     else:
                         if isinstance(obj, ExternalDataset):
                             # Check if "o" is column (measure) or dimension
@@ -523,112 +537,250 @@ def ast_evaluator(exp: Dict, state: State, obj, issue_lst, evaluation_type="nume
                     # Dictionary: function call or dataset access
                     if obj is None:
                         o["ns"] = _namespace
-                    obj = ast_evaluator(o, state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions)
+                    obj = ast_evaluator(o, state, obj, issue_lst, atomic_h_names, allowed_functions,
+                                        account_nas_name=account_nas_name, nest_level=nest_level + 1)
             if obj is None or isinstance(obj, (str, int, float, bool)):
-                return obj, unresolved_vars
+                ret_val = obj
             # TODO elif isinstance(obj, ...) depending on core object types, invoke a default method, or
             #  issue ERROR if it is not possible to cast to something simple
             else:
-                return obj, unresolved_vars
+                ret_val = obj
         elif t == "condition":  # Evaluate IF part to a Boolean. If True, return the evaluation of the THEN part; if False, return None
-            if_result, tmp = ast_evaluator(exp["if"], state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions)
-            unresolved_vars.update(tmp)
-            if len(tmp) == 0:
-                if if_result:
-                    then_result, tmp = ast_evaluator(exp["then"], state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions)
-                    unresolved_vars.update(tmp)
-                    if len(tmp) > 0:
-                        then_result = None
-                    return then_result, unresolved_vars
-            else:
-                return None, unresolved_vars
+            if_result, tmp = ast_evaluator(exp["if"], state, obj, issue_lst, atomic_h_names, allowed_functions)
+            involved_vars.update(tmp)
+            if len(tmp) == 0 and if_result:
+                then_result, tmp = ast_evaluator(exp["then"], state, obj, issue_lst,
+                                                 atomic_h_names, allowed_functions,
+                                                 account_nas_name=account_nas_name, nest_level=nest_level + 1)
+                involved_vars.update(tmp)
+                if len(tmp) > 0:
+                    then_result = None
+                ret_val = then_result
         elif t == "conditions":
+            ret_val = None
             for c in exp["parts"]:
-                cond_result, tmp = ast_evaluator(c, state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions)
-                unresolved_vars.update(tmp)
-                if len(tmp) == 0:
-                    if cond_result:
-                        return cond_result, unresolved_vars
-            return None, unresolved_vars
+                cond_result, tmp = ast_evaluator(c, state, obj, issue_lst, atomic_h_names,
+                                                 allowed_functions, account_nas_name=account_nas_name,
+                                                 nest_level=nest_level + 1)
+                involved_vars.update(tmp)
+                if len(tmp) == 0 and cond_result:
+                    ret_val = cond_result
+                    break
         elif t == "reference":
-            return "[" + exp["ref_id"] + "]", unresolved_vars  # TODO Return a special type
-        elif t in ("u+", "u-", "exponentials", "multipliers", "adders", "comparison", "not", "and", "or"):  # Arithmetic and Boolean
+            ret_val = "[" + exp["ref_id"] + "]"  # TODO Return a special type
+        elif t in ("u+", "u-", "exponentials", "multipliers", "adders", "comparison", "not", "and",
+                   "or"):  # Arithmetic and Boolean
+            # Evaluate recursively the left and right operands
+            locally_involved_vars = {}
+            if t in ("u+", "u-"):
+                current = 0
+                # NOTE: Unary operators do not have "left" side. So leave "locally_involved_vars" empty
+            else:
+                current, tmp1 = ast_evaluator(exp["terms"][0], state, obj, issue_lst, atomic_h_names,
+                                              allowed_functions, account_nas_name=account_nas_name,
+                                              nest_level=nest_level + 1)
+                locally_involved_vars.update(tmp1)
+                involved_vars.update(tmp1)
+
+            for i, e in enumerate(exp["terms"][1:]):
+                following, tmp2 = ast_evaluator(e, state, obj, issue_lst, atomic_h_names,
+                                                allowed_functions, account_nas_name=account_nas_name,
+                                                nest_level=nest_level + 1)
+                locally_involved_vars.update(tmp2)
+                involved_vars.update(tmp2)
+
+                # Type casting for primitive types
+                # TODO For Object types, apply default conversion. If both sides are Object, assume number
+                if (isinstance(current, (int, float)) and isinstance(following, (int, float))) or \
+                        (isinstance(current, bool) and isinstance(following, bool)) or \
+                        (isinstance(current, str) and isinstance(following, str)):
+                    pass  # Do nothing
+                else:  # In others cases, CAST to the operand of the left. This may result in an Exception
+                    if current is not None and following is not None:
+                        following = type(current)(following)
+
+                op = exp["ops"][i].lower()
+                # Either evaluation of terms was ok OR
+                # NAs accounting is enabled, nest-level==0 and is an NA compatible operator
+                admissible_evaluation = (len([k for k, v in locally_involved_vars.items() if v != "Av"]) == 0) or \
+                                        (nest_level == 0 and op in na_ops and account_nas_name is not None)
+                if admissible_evaluation:
+                    if op in ("+", "-", "u+", "u-"):
+                        if current is None:
+                            current = 0
+                        if following is None:
+                            following = 0
+                        if op in ("-", "u-"):
+                            following = -following
+                        current += following
+                    elif op in ("*", "/", "//", "%", "**", "^"):
+                        if following is None:
+                            following = 1
+                        if current is None:
+                            current = 1
+                        if op == "*":
+                            current *= following
+                        elif op == "/":
+                            current /= following
+                        elif op == "//":
+                            current //= following
+                        elif op == "%":
+                            current %= following
+                        elif op in ("**", "^"):
+                            current ^= following
+                    elif op == "not":
+                        current = not bool(following)
+                    elif op == "and":
+                        current = current and following
+                    elif op == "or":
+                        current = current or following
+                    else:  # Comparators
+                        fn = opMap[op]
+                        current = fn(current, following)
+                else:
+                    current = None  # Could not evaluate because there are missing variables
+
+            if account_nas_name and nest_level == 0:
+                # Calculate NAv, NAp and N
+                nav = set()
+                nap = set()
+                av = set()
+                m = {"NAv": nav, "NAp": nap, "Av": av}
+                # Split in sets depending on the category
+                [m[v].add(k) for k, v in involved_vars.items()]
+                # Prepare return value
+                current = {account_nas_name: current,
+                           f"{account_nas_name}_nav": f"{len(nav)}",
+                           f"{account_nas_name}_nap": f"{len(nap)}",
+                           f"{account_nas_name}_n": f"{len(nav)+len(nap)+len(av)}"}
+            elif len([k for k, v in locally_involved_vars.items() if v != "Av"]) > 0:
+                current = None
+
+            ret_val = current
+        else:
+            issue_lst.append((3, "'type' = " + t + " not supported."))
+    else:
+        issue_lst.append((3, "'type' not present in " + str(exp)))
+
+    # Convert "involved_vars" returned by top level to a set of "unresolved_vars"
+    if involved_vars and nest_level == 0:
+        involved_vars = {k for k, v in involved_vars.items() if v != "Av"}
+
+    if ret_var is None:
+        if involved_vars is not None:
+            return ret_val, involved_vars
+        else:
+            return ret_val  # Dataset
+    else:
+        return ret_var, ret_val, involved_vars  # Named parameter
+
+
+def ast_evaluator_static(exp: Dict, state: State, obj, issue_lst, atomic_h_names=False,
+                         allowed_functions=global_functions, account_nas_name: str = None,
+                         nest_level=0) -> Union[Tuple[float, List[str]], Tuple[str, float, List[str]]]:
+    """
+    NOT USED
+    Statically evaluate the result of the parse of "expression" rule (not valid for the other "expression" rules)
+    Return True if the expression can be evaluated (explicitly mentioned variables are defined previously)
+
+    :param exp: Dictionary representing the AST (output of "string_to_ast" function)
+    :param state: "State" used to obtain variables/objects
+    :param obj: An object used when evaluating hierarchical variables. simple names, functions and datasets are considered members of this object
+    :param issue_lst: List in which issues have to be annotated
+    :param atomic_h_names: If True, treat variable names as atomic (False processes them part by part, from left to right). Used in dataset expansion
+    :param allowed_functions: Set of allowed function names (and their definitions)
+    :param account_nas_name: If True, each evaluation at top level returns 4 results: the evaluation, number of variables,
+                        number of not available and number of not applicable (i.e., like zero)
+    :param nest_level: Recursive level of the function. Used to allow evaluation of addends when they are NotAvailable
+    :return: value (scalar EXCEPT for named parameters, which return a tuple "parameter name - parameter value"), list of unresolved variables
+    """
+    ret_val = None
+    # TODO dict()
+    #      Each unresolved var will be marked as "NAv" (not-available) or "NAp" (not-applicable, with counts as zero)
+    unresolved_vars = set()
+    if "type" in exp:
+        t = exp["type"]
+        if t == "dataset":
+            # Function parameters and Slice parameters
+            func_params = [ast_evaluator_static(p, state, obj, issue_lst, atomic_h_names, allowed_functions,
+                                                account_nas_name=account_nas_name, nest_level=nest_level + 1) for p in
+                           exp["func_params"]]
+            slice_params = [ast_evaluator_static(p, state, obj, issue_lst, atomic_h_names, allowed_functions,
+                                                 account_nas_name=account_nas_name, nest_level=nest_level + 1) for p in
+                            exp["slice_params"]]
+
+            # Find dataset named "exp["name"]"
+            if obj is None:
+                # Global dataset
+                ds = state.get(exp["name"], exp["ns"])
+                if not ds:
+                    issue_lst.append((3, "Global dataset '" + exp["name"] + "' not found"))
+                else:
+                    ds = True
+            else:
+                ds = True  # We cannot be sure it will be found, but do not break the evaluation
+            # True if the Dataset is True, and the parameters are True
+            return ds and all(func_params) and all(slice_params)
+        elif t == "function":  # Call function
+            # First, obtain the Parameters
+            args = []
+            kwargs = {}
+            can_resolve = True
+            for p in [ast_evaluator_static(p, state, obj, issue_lst, atomic_h_names, allowed_functions,
+                                           account_nas_name=account_nas_name, nest_level=nest_level + 1) for p in
+                      exp["params"]]:
+                if len(p) == 3:
+                    kwargs[p[0]] = p[1]
+                    tmp = p[2]
+                else:
+                    args.append(p[0])
+                    tmp = p[1]
+                unresolved_vars.update(tmp)
+                if len(tmp) > 0:
+                    can_resolve = False
+
+            if obj is None:
+                # Check if global function exists, then call it. There are no function namespaces (at least for now)
+                if exp["name"] in allowed_functions:
+                    _f = allowed_functions[exp["name"]]
+                    mod_name, func_name = _f["full_name"].rsplit('.', 1)
+                    mod = importlib.import_module(mod_name)
+                    func = getattr(mod, func_name)
+                    # True if everything is True: function defined and all parameters are True
+                    obj = func and all(args) and all(kwargs.values())
+            else:
+                # Call local function (a "method")
+                obj = True
+            return obj
+        elif t in ("u+", "u-", "exponentials", "multipliers", "adders", "comparison", "not", "and",
+                   "or"):  # Arithmetic and Boolean
             # Evaluate recursively the left and right operands
             if t in ("u+", "u-"):
-                if evaluation_type == "numeric":
-                    current = 0
-                else:
-                    current = True
+                current = True
                 tmp1 = []  # Unary operators do not have "left" side. So empty list for unresolved vars
             else:
-                current, tmp1 = ast_evaluator(exp["terms"][0], state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions)
+                current, tmp1 = ast_evaluator_static(exp["terms"][0], state, obj, issue_lst, atomic_h_names,
+                                                     allowed_functions, account_nas_name=account_nas_name,
+                                                     nest_level=nest_level + 1)
                 unresolved_vars.update(tmp1)
 
             for i, e in enumerate(exp["terms"][1:]):
-                following, tmp2 = ast_evaluator(e, state, obj, issue_lst, evaluation_type, atomic_h_names, allowed_functions)
+                following, tmp2 = ast_evaluator_static(e, state, obj, issue_lst, atomic_h_names,
+                                                       allowed_functions, account_nas_name=account_nas_name,
+                                                       nest_level=nest_level + 1)
                 unresolved_vars.update(tmp2)
-
-                if len(tmp1) == 0 and len(tmp2) == 0:
-                    if evaluation_type == "numeric":
-                        # Type casting for primitive types
-                        # TODO For Object types, apply default conversion. If both sides are Object, assume number
-                        if (isinstance(current, (int, float)) and isinstance(following, (int, float))) or \
-                                (isinstance(current, bool) and isinstance(following, bool)) or \
-                                (isinstance(current, str) and isinstance(following, str)):
-                            pass  # Do nothing
-                        else:  # In others cases, CAST to the operand of the left. This may result in an Exception
-                            if current is not None:
-                                following = type(current)(following)
-
-                        op = exp["ops"][i].lower()
-                        if op in ("+", "-", "u+", "u-"):
-                            if current is None:
-                                current = 0
-                            if following is None:
-                                following = 0
-                            if op in ("-", "u-"):
-                                following = -following
-
-                            current += following
-                        elif op in ("*", "/", "//", "%", "**", "^"):
-                            if following is None:
-                                following = 1
-                            if current is None:
-                                current = 1
-                            if op == "*":
-                                current *= following
-                            elif op == "/":
-                                current /= following
-                            elif op == "//":
-                                current //= following
-                            elif op == "%":
-                                current %= following
-                            elif op in ("**", "^"):
-                                current ^= following
-                        elif op == "not":
-                            current = not bool(following)
-                        elif op == "and":
-                            current = current and following
-                        elif op == "or":
-                            current = current or following
-                        else:  # Comparators
-                            fn = opMap[op]
-                            current = fn(current, following)
-                    elif evaluation_type == "static":
-                        current = current and following
-                else:
-                    current = None  # Could not evaluate because there are missing variables
+                current = current and following
 
             if len(unresolved_vars) > 0:
                 current = None
 
-            return current, unresolved_vars
+            ret_val = current
         else:
-            issue_lst.append((3, "'type' = "+t+" not supported."))
+            issue_lst.append((3, "'type' = " + t + " not supported."))
     else:
-        issue_lst.append((3, "'type' not present in "+str(exp)))
+        issue_lst.append((3, "'type' not present in " + str(exp)))
 
-    return val, unresolved_vars
+    return unresolved_vars
 
 
 def ast_to_string(exp):
@@ -843,6 +995,15 @@ if __name__ == '__main__':
     from nexinfosys.model_services import State
     from dotted.collection import DottedDict
 
+    # AST_EVALUATOR APPLICATIONS
+    # Dataset expansion: dataset name "." dataset field, operations, functions
+    # ProcessorScalings: _get_scale_value
+    # check_parameter_value (in this module)
+    # back_to_nis_format:get_interfaces, to obtain Interface value
+    # global_scalar_indicators
+    # local_scalar_indicators
+    # evaluate_numeric_expression_with_parameters
+
     ast = string_to_ast(arith_boolean_expression_with_less_tokens, "200 < capacity_factor and capacity_factor < 400")
     ast2 = string_to_ast(arith_boolean_expression, "200 < capacity_factor and capacity_factor < 400")
     s = State()
@@ -874,19 +1035,19 @@ if __name__ == '__main__':
                 "5 * {Param1}",
                 "True",
                 "'Hola' + Param1"
-    ]
+                ]
     for e in examples:
         try:
             ast = string_to_ast(arith_boolean_expression, e)
             issues = []
             res, unres = ast_evaluator(ast, s, None, issues)
-            print(e+":: AST: "+str(ast))
+            print(e + ":: AST: " + str(ast))
             if len(unres) > 0:
-                print("Unresolved variables: "+str(unres))
+                print("Unresolved variables: " + str(unres))
             else:
                 print(str(type(res)) + ": " + str(res))
         except Exception as e2:
-            print("Incorrect: "+e+": "+str(e2))
+            print("Incorrect: " + e + ": " + str(e2))
 
     s.set("HH", DottedDict({"Power": {"p": 34.5, "Price": 2.3}}))
     s.set("EN", DottedDict({"Power": {"Price": 1.5}}))
@@ -895,7 +1056,7 @@ if __name__ == '__main__':
     s.set("param2", 0.9)
     s.set("param3", 0.96)
     examples = [
-        "EN(p1=1.5, p2=2.3)[d1='C11', d2='C21'].v2",  # Simply sliced Variable Dataset (function call)
+        # "EN(p1=1.5, p2=2.3)[d1='C11', d2='C21'].v2",  # Simply sliced Variable Dataset (function call)
         "a_function(p1=2, p2='cc', p3=1.3*param3)",
         "-5+4*2",  # Simple expression #1
         "HH",  # Simple name
@@ -919,4 +1080,4 @@ if __name__ == '__main__':
         print(res)
         issues = []
         value, unres = ast_evaluator(res, s, None, issues)
-        print(str(type(value))+": "+str(value)+"; unresolved: "+unres)
+        print(str(type(value)) + ": " + str(value) + "; unresolved: " + unres)
