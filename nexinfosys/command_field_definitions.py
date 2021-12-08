@@ -460,11 +460,12 @@ command_fields: Dict[str, List[CommandField]] = {
     "lcia_methods": [
         CommandField(allowed_names=["LCIAMethod"], name="lcia_method", mandatory=True, parser=unquoted_string),
         # IndicatorMethod (Indicators), SAME (LCIAmethod)
-        CommandField(allowed_names=["LCIAIndicator"], name="lcia_indicator", mandatory=True, parser=simple_ident),
+        CommandField(allowed_names=["LCIACategory"], name="lcia_category", mandatory=False, parser=unquoted_string),
+        CommandField(allowed_names=["LCIAIndicator"], name="lcia_indicator", mandatory=True, parser=unquoted_string),
         # IndicatorName (Indicators), SAME (LCIAmethod)
         CommandField(allowed_names=["LCIAIndicatorUnit"], name="lcia_indicator_unit", mandatory=True,
                      parser=unquoted_string),  # IndicatorName (Indicators), SAME (LCIAmethod)
-        CommandField(allowed_names=["LCIAHorizon"], name="lcia_horizon", mandatory=True, parser=simple_ident),
+        CommandField(allowed_names=["LCIAHorizon"], name="lcia_horizon", mandatory=True, parser=unquoted_string),
         # IndicatorTemporal (Indicators)
         CommandField(allowed_names=["Interface"], name="interface", mandatory=True, parser=simple_ident),
         # SAME (LCIAmethod)

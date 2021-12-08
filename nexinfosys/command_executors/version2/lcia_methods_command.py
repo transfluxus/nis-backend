@@ -98,6 +98,7 @@ class LCIAMethodsCommand(BasicCommand):
         if subcompartment is None:
             subcompartment = ""
         _ = dict(m=fields["lcia_method"],
+                 t=fields.get("lcia_category", "total"),
                  d=fields["lcia_indicator"],
                  h=horizon,
                  i=fields["interface"],
