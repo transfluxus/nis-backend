@@ -53,34 +53,34 @@ class LCIAMethodsCommand(BasicCommand):
                             f"InterfaceType with name '{fields['interface']}' found {len(interface_type)} times" + subrow_issue_message(subrow))
             return
 
-        auto_create = False
-
-        # (LCIA) Indicator must exist
-        indicator = self._glb_idx.get(Indicator.partial_key(fields["lcia_indicator"]))
-        if len(indicator) == 1:
-            pass
-        elif len(indicator) == 0:
-            if auto_create:
-                # Create it and warn
-                indicator = Indicator(fields["lcia_indicator"],
-                                      f'LCIAMethod("{fields["lcia_indicator"]}")',
-                                      None,
-                                      "",
-                                      [],
-                                      IndicatorCategories.factors_expression,
-                                      "",
-                                      "LCIA",
-                                      fields["interface_unit"],
-                                      fields["interface_unit"],
-                                      fields["lcia_method"])
-                self._glb_idx.put(indicator.key(), indicator)
-                self._add_issue(IType.WARNING, f"Indicator with name '{fields['lcia_indicator']}' not found, created" + subrow_issue_message(subrow))
-            else:
-                self._add_issue(IType.WARNING, f"Indicator with name '{fields['lcia_indicator']}' not found, skipped" + subrow_issue_message(subrow))
-        else:
-            self._add_issue(IType.ERROR,
-                            f"Indicator with name '{fields['lcia_indicator']}' found {len(indicator)} times" + subrow_issue_message(subrow))
-            return
+        # auto_create = False
+        #
+        # # (LCIA) Indicator must exist
+        # indicator = self._glb_idx.get(Indicator.partial_key(fields["lcia_indicator"]))
+        # if len(indicator) == 1:
+        #     pass
+        # elif len(indicator) == 0:
+        #     if auto_create:
+        #         # Create it and warn
+        #         indicator = Indicator(fields["lcia_indicator"],
+        #                               f'LCIAMethod("{fields["lcia_indicator"]}")',
+        #                               None,
+        #                               "",
+        #                               [],
+        #                               IndicatorCategories.factors_expression,
+        #                               "",
+        #                               "LCIA",
+        #                               fields["interface_unit"],
+        #                               fields["interface_unit"],
+        #                               fields["lcia_method"])
+        #         self._glb_idx.put(indicator.key(), indicator)
+        #         self._add_issue(IType.WARNING, f"Indicator with name '{fields['lcia_indicator']}' not found, created" + subrow_issue_message(subrow))
+        #     else:
+        #         self._add_issue(IType.WARNING, f"Indicator with name '{fields['lcia_indicator']}' not found, skipped" + subrow_issue_message(subrow))
+        # else:
+        #     self._add_issue(IType.ERROR,
+        #                     f"Indicator with name '{fields['lcia_indicator']}' found {len(indicator)} times" + subrow_issue_message(subrow))
+        #     return
 
         # Store LCIA Methods as a new variable.
         # TODO Use it to prepare a pd.DataFrame previous to calculating Indicators (after solving). Use "to_pickable"
