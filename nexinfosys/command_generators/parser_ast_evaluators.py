@@ -119,7 +119,7 @@ lcia_method_names = {}
 
 
 def lcia_method(indicator: str, method: str = None, horizon: str = None, compartment: str = None,
-                subcompartment: str = None,
+                subcompartment: str = None, category: str = None,
                 state: State = None, lcia_methods: PartialRetrievalDictionary = None):
     """
 
@@ -130,7 +130,7 @@ def lcia_method(indicator: str, method: str = None, horizon: str = None, compart
     :param subcompartment: Subcompartment to which the indicator applies
     :param state: Current values of processor plus parameters
     :param lcia_methods: Where LCIA data is collected
-    :return: A dictionary with the
+    :return: A dictionary with the indicators and calculated values
     """
     global lcia_method_names
     if indicator is None or indicator.strip() == "":
@@ -150,6 +150,8 @@ def lcia_method(indicator: str, method: str = None, horizon: str = None, compart
         k["c"] = compartment
     if subcompartment:
         k["s"] = subcompartment
+    if category:
+        k["t"] = category
 
     ms = lcia_methods.get(key=k, key_and_value=True)
     indices = create_dictionary()
@@ -172,6 +174,9 @@ def lcia_method(indicator: str, method: str = None, horizon: str = None, compart
             idx_name += f'_{get_nis_name(k["c"])}'
         if k["s"] != "":
             idx_name += f'_{get_nis_name(k["s"])}'
+        if k["t"] != "":
+            idx_name += f'_{get_nis_name(k["t"])}'
+
         if idx_name in indices:
             lst = indices[idx_name]
         else:
