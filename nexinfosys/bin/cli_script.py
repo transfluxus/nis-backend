@@ -4,6 +4,7 @@ import logging
 import os
 import re
 import tempfile
+import urllib
 from io import BytesIO, StringIO
 from typing import List, Union, BinaryIO, Tuple
 from zipfile import ZipFile
@@ -55,6 +56,10 @@ def get_valid_name(original_name):
     return prefix + re.sub("[^0-9a-zA-Z_]+", "", remainder)
 
 
+def get_file_url(fn):
+    return "file:" + urllib.request.pathname2url(fn)
+
+
 def read_submit_solve_nis_file(nis_file_url: str, state: State, solve=False) -> Tuple[NIS, List[Issue]]:
     nis = NIS()
     nis.open_session(True, state)
@@ -79,9 +84,8 @@ def issue_str(issue: Issue):
 def prepare_base_state(base_url: str, solve: bool, directory: str = None, force_refresh: bool = False):
     from nexinfosys import initialize_configuration
     initialize_configuration()  # Needed to make download and NIS later work properly
-    additional_slash = "/" if platform.system().lower() == "windows" else ""
     if base_url.startswith(os.sep) or base_url[1] == ":":
-        base_url = f"file://{additional_slash}{base_url}"
+        base_url = get_file_url(base_url)
     logging.debug(f"File to be downloaded: {base_url}")
     tmp_io = download_file(base_url)
     bytes_io = set_zip_timestamp(tmp_io)
@@ -106,7 +110,7 @@ def prepare_base_state(base_url: str, solve: bool, directory: str = None, force_
         temp_name = temp_name.name
         with open(temp_name, "wb") as f:
             f.write(bytes_io.getvalue())
-        f_name = f"file://{additional_slash}{temp_name}"
+        f_name = get_file_url(temp_name)
         logging.debug(f"Temporary being loaded: {f_name}")
         nis, issues = read_submit_solve_nis_file(f_name, None, solve=solve)
         os.remove(temp_name)
