@@ -43,3 +43,5 @@ nexinfosys/command_generators/parser_spreadsheet_utils_accel.cpython-37m-x86_64-
 
 nexinfosys/restful_service/helper_accel.c
 /nexinfosys/restful_service/nis_docker_beauvoir.conf
+
+issues.txt

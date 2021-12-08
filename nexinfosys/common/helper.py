@@ -526,7 +526,7 @@ class PartialRetrievalDictionary:
         # Counter
         self._id_counter = 0
 
-    def get(self, key, key_and_value=False, full_key=False, just_oid=False):
+    def get(self, key, key_and_value=False, full_key=False, just_oid=False, just_key=False):
         """
         Retrieve one or more objects matching "key"
         If "key_and_value" is True, return not only the value, also matching key (useful for multiple matching keys)
@@ -541,11 +541,22 @@ class PartialRetrievalDictionary:
             if case_sensitive:
                 key2 = {k.lower(): v for k, v in key.items()}
             else:
-                key2 = {k.lower(): v if k.startswith("__") else v.lower() for k, v in key.items()}
+                key2 = {k.lower(): v if k.startswith("__") else v.lower() if v else None for k, v in key.items()}
         else:
             key2 = key
 
-        sets = [self._keys.get(k, {}).get(v, set()) for k, v in key2.items()]
+        # sets = []
+        # for k, v in key2.items():
+        #     if v is not None:
+        #         sets.append(self._keys.get(k, {}).get(v, set()))
+        #     else:
+        #         _ = set().union(*self._keys.get(k, {}).values())
+        #         sets.append(_)
+
+        sets = [self._keys.get(k, {}).get(v, set())
+                if v is not None else
+                set().union(*self._keys.get(k, {}).values())
+                for k, v in key2.items()]
 
         # Find shorter set and Remove it from the list
         min_len = 1e30
@@ -564,10 +575,13 @@ class PartialRetrievalDictionary:
         # Obtain list of results
         if full_key and len(result) > 1:
             raise Exception("Zero or one results were expected. "+str(len(result)+" obtained."))
-        if not key_and_value:
-            return [self._objs[oid][1] for oid in result]
+        if not just_key:
+            if not key_and_value:
+                return [self._objs[oid][1] for oid in result]
+            else:
+                return [self._objs[oid] for oid in result]
         else:
-            return [self._objs[oid] for oid in result]
+            return [self._objs[oid][0] for oid in result]
 
     def get_one(self, key, key_and_value=False, full_key=False, just_oid=False):
         results = self.get(key, key_and_value, full_key, just_oid)
@@ -1217,6 +1231,13 @@ def download_file(location, wv_user=None, wv_password=None, wv_host_name=None):
         if pr.netloc.lower() == wv_host_name:
             data = wv_download_file(location, wv_user, wv_password, wv_host_name)
         elif pr.netloc.lower() == "docs.google.com" or pr.netloc.lower() == "drive.google.com":
+            # TODO From mail: Aug 11, 2021, 6:47 AM
+            #   with subject: [Action Required] Drive API requires updates to your code before Sep 13, 2021
+            #   13 of September
+            #      https://developers.google.com/drive/api/v3/reference/files
+            #      https://developers.google.com/drive/api/v3/resource-keys
+            #
+
             # Google Drive. CSV and XLSX files supported (if Google Sheets, an Export to XLSX is done)
             # Extract file id from the URL
             import re
