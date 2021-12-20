@@ -138,7 +138,7 @@ def prepare_default_configuration(create_directories):
     return f"""{os.linesep.join([f'{k}="{v}"' for k, v in dirs.items()])}
 DB_CONNECTION_STRING="sqlite:///{data_path}{os.sep}nis_metadata.db"
 DATA_CONNECTION_STRING="sqlite:///{data_path}{os.sep}nis_cached_datasets.db"
-SQL_ECHO=True
+SHOW_SQL=True
 # Flask Session (server side session)
 REDIS_HOST="filesystem:local_session"
 TESTING="True"

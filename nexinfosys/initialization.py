@@ -113,7 +113,7 @@ def initialize_databases():
     recreate_db = False
     if nexinfosys.get_global_configuration_variable("DB_CONNECTION_STRING"):
         db_connection_string = nexinfosys.get_global_configuration_variable("DB_CONNECTION_STRING")
-        echo_sql = nexinfosys.get_global_configuration_variable("SQL_ECHO", False)
+        echo_sql = nexinfosys.get_global_configuration_variable("SHOW_SQL", False)
         if isinstance(echo_sql, str):
             echo_sql = True if echo_sql.lower() == "true" else False
         logging.debug("Connecting to metadata server")
