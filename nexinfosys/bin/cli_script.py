@@ -120,7 +120,6 @@ def prepare_base_state(base_url: str, solve: bool, directory: str = None, force_
                 any_error = True
         # Write if there are no errors
         if not any_error:
-            # raise Exception(f'There were errors with the NIS base file {base_url}.')
             from nexinfosys.serialization import serialize_state
             state = nis.get_state()
             serial_state = serialize_state(state)
@@ -129,6 +128,11 @@ def prepare_base_state(base_url: str, solve: bool, directory: str = None, force_
                 f.write(hash_)
             with open(state_file, "wb") as f:
                 f.write(serial_state)
+        else:
+            # raise Exception(f'There were errors with the NIS base file {base_url}.')
+            # print_issues("NIS base preparation", f_name, issues, "NIS base preparation failed, check errors")
+            state = None
+            serial_state = None
     else:
         issues = None  # Cached, no issues
         with open(state_file, "rb") as f:
