@@ -117,9 +117,6 @@ def call_udif_function(function_name, state: State = None):
     return obj
 
 
-lcia_method_names = {}
-
-
 def lcia_method(indicator: str, method: str = None, horizon: str = None, compartment: str = None,
                 subcompartment: str = None, category: str = None,
                 state: State = None, lcia_methods: PartialRetrievalDictionary = None):
@@ -134,14 +131,8 @@ def lcia_method(indicator: str, method: str = None, horizon: str = None, compart
     :param lcia_methods: Where LCIA data is collected
     :return: A dictionary with the indicators and calculated values
     """
-    global lcia_method_names
     if indicator is None or indicator.strip() == "":
         return None
-
-    try:
-        string_to_ast(simple_ident, indicator)
-    except:
-        indicator = get_nis_name(indicator)
 
     k = dict(d=indicator)
     if method:
@@ -159,48 +150,47 @@ def lcia_method(indicator: str, method: str = None, horizon: str = None, compart
     indices = create_dictionary()
     for k, v in ms:
         method = k["m"]
-        if method not in lcia_method_names:
-            tmp = method
-            try:
-                string_to_ast(simple_ident, method)
-            except:
-                method = get_nis_name(method)
-            lcia_method_names[tmp] = method
-        else:
-            method = lcia_method_names[method]
-
         idx_name = f'{indicator}_{method}'
         if k["h"] != "":
             idx_name += f'_{k["h"]}'
         if k["c"] != "":
-            idx_name += f'_{get_nis_name(k["c"])}'
+            idx_name += f'_{k["c"]}'
         if k["s"] != "":
-            idx_name += f'_{get_nis_name(k["s"])}'
+            idx_name += f'_{k["s"]}'
         if k["t"] != "":
-            idx_name += f'_{get_nis_name(k["t"])}'
+            idx_name += f'_{k["t"]}'
 
+        idx_name = get_nis_name(idx_name)
         if idx_name in indices:
             lst = indices[idx_name]
         else:
             lst = []
             indices[idx_name] = lst
-        lst.append((k["i"], v[0], float(v[1])))
+        lst.append((k["i"], v[0], float(v[1])))  # Interface, TargetUnit, Weight
 
     ifaces = create_dictionary()
     for t in state.list_namespace_variables():
-        if not t[0].startswith("_"):
-            p = t[1]  # * ureg(iface_unit)
-            ifaces[t[0]] = p
+        # if not t[0].startswith("_"):
+        p = t[1]  # * ureg(iface_unit)
+        ifaces[t[0]] = p
 
     res = dict()
     for name, lst in indices.items():
         interfaces = []
         weights = []  # From "
+        involved_vars = {}
         for t in lst:
             if t[0] in ifaces:
                 v = ifaces[t[0]]  # TODO .to(t[1])
-                interfaces.append(v)
-                weights.append(t[2])
+                if math.isnan(v):
+                    involved_vars[t[0]] = "NAv"
+                else:
+                    involved_vars[t[0]] = "Av"
+                    interfaces.append(v)
+                    weights.append(t[2])
+            else:
+                # NAv variable
+                involved_vars[t[0]] = "NAp"
         # Calculate the value
         ind = np.sum(np.multiply(interfaces, weights))  # * ureg(indicator_unit)
         res[name] = ind
@@ -655,7 +645,7 @@ def ast_evaluator(exp: Dict, state: State, obj, issue_lst, atomic_h_names=False,
                 m = {"NAv": nav, "NAp": nap, "Av": av}
                 # Split in sets depending on the category
                 [m[v].add(k) for k, v in involved_vars.items()]
-                # Prepare return value
+                # Prepare return value, a dict
                 current = {account_nas_name: current,
                            f"{account_nas_name}_nav": f"{len(nav)}",
                            f"{account_nas_name}_nap": f"{len(nap)}",
