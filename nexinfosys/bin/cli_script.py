@@ -142,31 +142,60 @@ def prepare_base_state(base_url: str, solve: bool, directory: str = None, force_
     return state, serial_state, issues
 
 
-def print_issues(operation, file, issues: List[Issue]):
+class PrintColors:
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    DARKCYAN = '\033[36m'
+    BLUE = '\033[94m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+    END = '\033[0m'
+
+
+def print_issues(operation, file, issues: List[Issue], msg_in_case_of_error: str = None):
     if issues is not None:
-        if len(issues) > 0:
-            error_count = 0
-            warning_count = 0
+        # First print all the issues
+        w = len(str(len(issues)))
+        i = 0
+        max_of_a_type = 1000
+        for issue_type in [IType.ERROR, IType.WARNING]:
+            j = 0
             for issue in issues:
-                if issue.itype == IType.ERROR:
-                    error_count += 1
-            if error_count > 0:
-                print(f"There was a total of {error_count} errors detected")
+                if issue.itype == issue_type:
+                    i += 1
+                    j += 1
+                    s = f'{issue.itype.name:7}: {issue.description} ({issue.ctype}, {issue.location})'  # f"{issue.itype.name:7}: {issue.description}"
+                    print(f"{i:{w}}: {s}")
+                    if j > max_of_a_type:
+                        print(f"{PrintColors.YELLOW}There are more than {max_of_a_type} issues of type {issue_type.name} than allowed.{PrintColors.END}")
+                        break
+        # Finally, summary: # errors and warnings
+        errors = 0
+        warnings = 0
+        for issue in issues:
+            if issue.itype == IType.ERROR:
+                errors += 1
+            elif issue.itype == IType.WARNING:
+                warnings += 1
+
+        if warnings or errors:
+            print("-------------------------------------------------------")
+
+        if warnings > 0:
+            print(f"{PrintColors.YELLOW}{warnings} warning{'s' if warnings != 1 else ''} found{PrintColors.END}")
+        if errors > 0:
+            if msg_in_case_of_error:
+                print(msg_in_case_of_error)
+            print(f"{PrintColors.RED}{errors} error{'s' if errors != 1 else ''} found{PrintColors.END}")
+
+        if errors == 0:
+            if operation:
+                print(f"{PrintColors.GREEN}{operation} successful{PrintColors.END} (no errors detected)")
             else:
-                print(f"{operation} successful (no errors detected)")
-            if warning_count > 0:
-                print(f"There was a total of {warning_count} warnings")
-            print("--------------------")
-            for issue_type in [IType.ERROR, IType.WARNING]:
-                if issue_type == IType.ERROR:
-                    print(f"Errors ({error_count} total):")
-                elif issue_type == IType.WARNING:
-                    print(f"Warnings ({warning_count} total):")
-                for issue in issues:
-                    if issue.itype == issue_type:
-                        print(issue_str(issue))
-        else:
-            print(f"{operation} successful, and no issues!")
+                print(f"{PrintColors.GREEN}Operation finished successfully{PrintColors.END} (no errors detected)")
     else:
         print(
             f"File '{file}' was already cached, meaning no change and no errors detected. "
