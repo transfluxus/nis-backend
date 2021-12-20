@@ -989,6 +989,7 @@ def compute_partof_hierarchies(registry: PartialRetrievalDictionary,
         name_ifacenodes[node.name] = node
 
     check_behave_as_dependencies(behave_as_dependencies, processor_interface_nodes)
+    # For processors marked to BehaveAs, interfaces not to be aggregated
     behave_as_differences = compute_behave_as_differences(behave_as_dependencies, processor_interface_nodes)
 
     hierarchies: InterfaceNodeHierarchy = {}
@@ -1954,9 +1955,12 @@ def calculate_local_scalar_indicators(indicators: List[Indicator],
     dfs = []
     for si in indicators:
         if si._indicator_category == IndicatorCategories.factors_expression:
-            dfi = calculate_local_scalar_indicator(si)
-            if not dfi.empty:
-                dfs.append(dfi)
+            try:
+                dfi = calculate_local_scalar_indicator(si)
+                if not dfi.empty:
+                    dfs.append(dfi)
+            except Exception as e:
+                traceback.print_exc()
 
     # Restore index
     results.set_index(idx_to_change, append=True, inplace=True)
@@ -2050,15 +2054,22 @@ def calculate_global_scalar_indicators(indicators: List[Indicator],
     dfs = []
     for si in indicators:
         if si._indicator_category == IndicatorCategories.case_study:
-            dfi = calculate_global_scalar_indicator(si)
-            if not dfi.empty:
-                dfs.append(dfi)
+            try:
+                dfi = calculate_global_scalar_indicator(si)
+                if not dfi.empty:
+                    dfs.append(dfi)
+            except Exception as e:
+                traceback.print_exc()
+                raise e
 
     # Restore index
     results.set_index(idx_to_change, append=True, inplace=True)
 
     if dfs:
-        return pd.concat(dfs)
+        # Merge all the results
+        df = pd.concat(dfs, axis=0, sort=False)
+        df.set_index(idx_names, inplace=True)
+        return df
     else:
         return pd.DataFrame()
 
