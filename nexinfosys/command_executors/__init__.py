@@ -503,7 +503,9 @@ def parse_cmd_row_dict(cmd_name: str, row: Dict[str, str], already_parsed_fields
     # Append if all mandatory fields have been filled
     if len(mandatory_not_found) > 0:
         issues.append(Issue(itype=IType.ERROR,
-                            description=f"Mandatory columns: {', '.join(mandatory_not_found)} have not been specified",
+                            description=f"Mandatory column{'s' if len(mandatory_not_found) > 1 else ''}: "
+                                        f"{', '.join(mandatory_not_found)} "
+                                        f"{'have' if len(mandatory_not_found) > 1 else 'has'} not been specified",
                             location=location))
         may_append = False
 
