@@ -202,23 +202,39 @@ def register_external_datasources():
     dsm2 = DataSourceManager(session_factory=DBSession)
 
     # Eurostat
-    dsm2.register_datasource_manager(Eurostat())
+    try:
+        dsm2.register_datasource_manager(Eurostat())
+    except:
+        print("Eurostat not registered")
 
-    # TODO COMEXT
-    dsm2.register_datasource_manager(COMEXT())
+    # COMEXT
+    try:
+        dsm2.register_datasource_manager(COMEXT())
+    except:
+        print("COMEXT not registered")
 
     # FAO
-    fao_dir = nexinfosys.get_global_configuration_variable("FAO_DATASETS_DIR", "/home/rnebot/DATOS/FAOSTAT/")
-    dsm2.register_datasource_manager(FAOSTAT(datasets_directory=fao_dir,
-                                             metadata_session_factory=DBSession,
-                                             data_engine=nexinfosys.data_engine))
+    try:
+        fao_dir = nexinfosys.get_global_configuration_variable("FAO_DATASETS_DIR", "/home/rnebot/DATOS/FAOSTAT/")
+        dsm2.register_datasource_manager(FAOSTAT(datasets_directory=fao_dir,
+                                                 metadata_session_factory=DBSession,
+                                                 data_engine=nexinfosys.data_engine))
+    except:
+        print("FAO not registered")
 
     # OECD
-    dsm2.register_datasource_manager(OECD())
+    try:
+        dsm2.register_datasource_manager(OECD())
+    except:
+        print("OECD not registered")
 
     # FADN
-    dsm2.register_datasource_manager(FADN(metadata_session_factory=DBSession,
-                                          data_engine=nexinfosys.data_engine))
+    try:
+        dsm2.register_datasource_manager(FADN(metadata_session_factory=DBSession,
+                                              data_engine=nexinfosys.data_engine))
+    except:
+        print("FADN not registered")
+
     # sources = dsm2.get_supported_sources()
     return dsm2
 
