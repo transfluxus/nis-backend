@@ -413,8 +413,8 @@ def prepare_model(state) -> NoReturn:
                 #  * create an Interface into that Processor and a Flow Relationship
                 if len(relations) == 0:
                     # Define the name of a Processor in the same context but in different subcontext
-                    p_name = iface.opposite_processor_type + "_" + iface.processor.processor_system
-                    p = glb_idx.get(Processor.partial_key(p_name))
+                    p_name = iface.opposite_processor_type  # + "_" + iface.processor.processor_system
+                    p = glb_idx.get(Processor.partial_key(p_name, system=iface.processor.processor_system))
                     if len(p) == 0:
                         attributes = {
                             'subsystem_type': iface.opposite_processor_type,
