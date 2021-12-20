@@ -1198,6 +1198,8 @@ def download_with_pycurl(location):
     c.setopt(c.FOLLOWLOCATION, True)
     c.setopt(c.HEADERFUNCTION, header_function)
     c.setopt(c.WRITEDATA, data)
+    c.setopt(pycurl.SSL_VERIFYPEER, 0)
+    c.setopt(pycurl.SSL_VERIFYHOST, 0)
     c.perform()
     status = c.getinfo(c.RESPONSE_CODE)
     c.close()
