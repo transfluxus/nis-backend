@@ -7,7 +7,7 @@ import pandas as pd
 import xlrd
 
 import nexinfosys
-from nexinfosys.command_generators import IType
+from nexinfosys.command_generators import IType, Issue
 from nexinfosys.common.helper import any_error_issue, download_file
 from nexinfosys.model_services import get_case_study_registry_objects, State
 from nexinfosys.model_services.workspace import InteractiveSession, prepare_and_solve_model
@@ -201,9 +201,9 @@ class NIS:
                     tmp = [tmp[-1], "Nexinfosys module not found", "Line not found"]
                 exc_info = ' :: '.join([s.strip() for s in tmp])
                 # Error Issue with the extracted Exception text
-                issues = [nexinfosys.Issue(itype=IType.ERROR,
-                                           description=f"UNCONTROLLED CONDITION: {exc_info}. Please, contact the development team.",
-                                           location=None)]
+                issues = [Issue(itype=IType.ERROR,
+                                description=f"UNCONTROLLED CONDITION: {exc_info}. Please, contact the development team.",
+                                location=None)]
 
             # STORE the issues
             self._issues = issues
@@ -232,9 +232,10 @@ class NIS:
                     tmp = [tmp[-1], "Nexinfosys module not found", "Line not found"]
                 exc_info = ' :: '.join([s.strip() for s in tmp])
                 # Error Issue with the extracted Exception text
-                issues = [nexinfosys.Issue(itype=IType.ERROR,
-                                           description=f"UNCONTROLLED CONDITION: {exc_info}. Please, contact the development team.",
-                                           location=None)]
+                self._issues.append(
+                    Issue(itype=IType.ERROR,
+                          description=f"UNCONTROLLED CONDITION: {exc_info}. Please, contact the development team.",
+                          location=None))
 
             self._state = self._isession.state
 
