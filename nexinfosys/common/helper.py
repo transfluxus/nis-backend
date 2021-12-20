@@ -545,20 +545,13 @@ class PartialRetrievalDictionary:
         else:
             key2 = key
 
-        # sets = []
-        # for k, v in key2.items():
-        #     if v is not None:
-        #         sets.append(self._keys.get(k, {}).get(v, set()))
-        #     else:
-        #         _ = set().union(*self._keys.get(k, {}).values())
-        #         sets.append(_)
-
+        # List of sets, one per element of "key". If a key is "None", set of all values for that key
         sets = [self._keys.get(k, {}).get(v, set())
                 if v is not None else
                 set().union(*self._keys.get(k, {}).values())
                 for k, v in key2.items()]
 
-        # Find shorter set and Remove it from the list
+        # To speed up intersection of all sets, use smaller set as reference
         min_len = 1e30
         min_len_set_idx = None
         for i, s in enumerate(sets):
