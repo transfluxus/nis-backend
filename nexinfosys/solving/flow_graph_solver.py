@@ -941,37 +941,38 @@ def compute_partof_hierarchies(registry: PartialRetrievalDictionary,
 
             # Add the interfaces of the child processor to the parent processor
             for child_interface_node in child_interface_nodes:
-                parent_interface_node = InterfaceNode(child_interface_node.interface, parent)
+                parent_interface_node = InterfaceNode(child_interface_node.interface, parent, child_interface_node.orientation)
                 interface_node = name_ifacenodes.get(parent_interface_node.name)
                 # Search parent_interface in Set of existing interface_nodes, it can have same name but different
                 # combination of (type, orientation). For example, we define:
                 # - interface "ChildProcessor:Water" as (BlueWater, Input)
                 # - interface "ParentProcessor:Water" as (BlueWater, Output)
                 # In this case aggregating child interface results in a conflict in parent
-                if interface_node:
-                    # Exists, check the above possible issue: "conflict in interface orientation"
-                    if True:
-                        if (interface_node.type, interface_node.orientation) != \
-                                (parent_interface_node.type, parent_interface_node.orientation):
-                            raise SolvingException(
-                                f"Interface '{parent_interface_node}' already defined with type <{parent_interface_node.type}> and orientation <{parent_interface_node.orientation}> "
-                                f"is being redefined with type <{interface_node.type}> and orientation <{interface_node.orientation}> when aggregating processor "
-                                f"<{child_interface_node.processor_name}> to parent processor <{parent_interface_node.processor_name}>. Rename either the child or the parent interface.")
-                    else:
-                        for interface_node in interface_nodes:
-                            if interface_node == parent_interface_node:
-                                if (interface_node.type, interface_node.orientation) != \
-                                        (parent_interface_node.type, parent_interface_node.orientation):
-                                    raise SolvingException(
-                                        f"Interface '{parent_interface_node}' already defined with type <{parent_interface_node.type}> and orientation <{parent_interface_node.orientation}> "
-                                        f"is being redefined with type <{interface_node.type}> and orientation <{interface_node.orientation}> when aggregating processor "
-                                        f"<{child_interface_node.processor_name}> to parent processor <{parent_interface_node.processor_name}>. Rename either the child or the parent interface.")
-                                break
-                else:
+                if not interface_node:
                     # Does not exist, just add it
                     name_ifacenodes[parent_interface_node.name] = parent_interface_node
                     interface_nodes.add(parent_interface_node)
                     processor_interface_nodes.setdefault(parent_interface_node.processor, []).append(parent_interface_node)
+                else:
+                    pass
+                    # # Exists, check the above possible issue: "conflict in interface orientation"
+                    # if True:
+                    #     if (interface_node.type, interface_node.orientation) != \
+                    #             (parent_interface_node.type, parent_interface_node.orientation):
+                    #         raise SolvingException(
+                    #             f"Interface '{parent_interface_node}' already defined with type <{parent_interface_node.type}> and orientation <{parent_interface_node.orientation}> "
+                    #             f"is being redefined with type <{interface_node.type}> and orientation <{interface_node.orientation}> when aggregating processor "
+                    #             f"<{child_interface_node.processor_name}> to parent processor <{parent_interface_node.processor_name}>. Rename either the child or the parent interface.")
+                    # else:
+                    #     for interface_node in interface_nodes:
+                    #         if interface_node == parent_interface_node:
+                    #             if (interface_node.type, interface_node.orientation) != \
+                    #                     (parent_interface_node.type, parent_interface_node.orientation):
+                    #                 raise SolvingException(
+                    #                     f"Interface '{parent_interface_node}' already defined with type <{parent_interface_node.type}> and orientation <{parent_interface_node.orientation}> "
+                    #                     f"is being redefined with type <{interface_node.type}> and orientation <{interface_node.orientation}> when aggregating processor "
+                    #                     f"<{child_interface_node.processor_name}> to parent processor <{parent_interface_node.processor_name}>. Rename either the child or the parent interface.")
+                    #             break
 
                 hierarchies.setdefault(parent_interface_node, set()).add(child_interface_node)
 
