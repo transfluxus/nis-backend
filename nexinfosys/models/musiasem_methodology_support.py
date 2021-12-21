@@ -16,6 +16,9 @@ Persistent store, in database
 """
 import datetime
 import logging
+import threading
+import traceback
+from queue import Queue
 
 from sqlalchemy import Column, Boolean, Integer, String, Unicode, DateTime, LargeBinary, ForeignKey
 from copy import deepcopy
@@ -79,20 +82,50 @@ class GUID(TypeDecorator):
             return uuid.UUID(value)
 
 
-def serialize_from_object(obj):
+def exec_highly_recursive_function(func, params, size=20000):
+
     tmp = sys.getrecursionlimit()
-    sys.setrecursionlimit(10000)
-    tmp_str = jsonpickle.encode(obj)  # .encode("ascii")
+    tmp2 = threading.stack_size()
+    sys.setrecursionlimit(size)
+    threading.stack_size(0x1000000)
+    que = Queue()
+    try:
+        t = threading.Thread(target=lambda q, arg1: q.put(func(arg1)), args=(que, params))
+        t.start()
+        t.join()
+    except:
+        traceback.print_exc()
+    threading.stack_size(tmp2)
     sys.setrecursionlimit(tmp)
+    return que.get()
+
+
+def serialize_from_object(obj):
+    def encode(o_):
+        return jsonpickle.encode(o_)
+
+    # tmp = sys.getrecursionlimit()
+    # sys.setrecursionlimit(10000)
+    # tmp_str = jsonpickle.encode(obj)
+    # sys.setrecursionlimit(tmp)
+    # return tmp_str
+
+    tmp_str = exec_highly_recursive_function(encode, obj)
     return tmp_str
 
 
 def deserialize_to_object(s):
-    tmp = sys.getrecursionlimit()
-    sys.setrecursionlimit(10000)
-    tmp_str = jsonpickle.decode(s)
-    sys.setrecursionlimit(tmp)
-    return tmp_str
+    def decode(s_):
+        return jsonpickle.decode(s_)
+
+    # tmp = sys.getrecursionlimit()
+    # sys.setrecursionlimit(10000)
+    # tmp_str = decode(s)
+    # sys.setrecursionlimit(tmp)
+    # return tmp_str
+
+    tmp_obj = exec_highly_recursive_function(decode, s)
+    return tmp_obj
 
 
 class BaseMixin(object):
