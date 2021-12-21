@@ -2061,7 +2061,6 @@ def calculate_global_scalar_indicators(indicators: List[Indicator],
                     dfs.append(dfi)
             except Exception as e:
                 traceback.print_exc()
-                raise e
 
     # Restore index
     results.set_index(idx_to_change, append=True, inplace=True)
@@ -2282,13 +2281,16 @@ def prepare_matrix_indicators(indicators: List[MatrixIndicator],
     # For each MatrixIndicator...
     result = {}
     for mi in indicators:
-        df = prepare_matrix_indicator(mi)
         ds_name = mi.name
         if dynamic_scenario:
             ds_name = "dyn_"+ds_name
-        ds = get_dataset(df, ds_name, mi.description)
-        result[ds_name] = ds
-
+        try:
+            df = prepare_matrix_indicator(mi)
+        except Exception as e:
+            df = pd.DataFrame()
+            traceback.print_exc()
+        if not df.empty:
+            result[ds_name] = df
     return result
 
 
