@@ -41,6 +41,8 @@ class ScalarIndicatorsCommand(BasicCommand):
                 if benchmark:
                     benchmarks.append(benchmark)
 
+        attributes = self._transform_text_attributes_into_dictionary(fields["attributes"], subrow)
+
         indicator = Indicator(fields["indicator_name"],
                               fields["formula"],
                               None,
@@ -53,5 +55,6 @@ class ScalarIndicatorsCommand(BasicCommand):
                               fields["unit"],
                               fields["unit_label"],
                               fields["source"],
-                              fields["account_na"])
+                              fields["account_na"],
+                              attributes)
         self._glb_idx.put(indicator.key(), indicator)

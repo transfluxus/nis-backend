@@ -442,6 +442,8 @@ command_fields: Dict[str, List[CommandField]] = {
         CommandField(allowed_names=["UnitLabel"], name="unit_label", mandatory=False, parser=unquoted_string),
         CommandField(allowed_names=["Description"], name="description", parser=unquoted_string),
         CommandField(allowed_names=["Reference", "Source"], name="source", mandatory=False, parser=reference),
+        CommandField(allowed_names=[attributeRegex], name="attributes", many_appearances=True, parser=value),
+        CommandField(allowed_names=["Attributes"], name="attributes", parser=key_value_list)
         # SAME (Indicators)
     ],
 
