@@ -2809,7 +2809,7 @@ class IndicatorCategories(Enum):  # Used in FlowFund
     case_study = 3  # An expression operating on factors of from different parts of the case study
 
 
-class Indicator(Nameable, Identifiable, Encodable):
+class Indicator(Nameable, Identifiable, Qualifiable, Encodable):
     """ An arithmetic expression resulting in a numeric value to assess a quality of the SES (SocioEcological System) under study
     Categorize indicators:
     * Attached to FactorType
@@ -2818,9 +2818,11 @@ class Indicator(Nameable, Identifiable, Encodable):
     """
     def __init__(self, name: str, formula: str, from_indicator: Optional["Indicator"], processors_selector: str,
                  benchmarks: List[Benchmark], indicator_category: IndicatorCategories, description=None,
-                 indicators_group=None, unit=None, unit_label=None, source=None, account_na=None):
+                 indicators_group=None, unit=None, unit_label=None, source=None, account_na=None,
+                 attributes: Dict[str, Any] = None):
         Identifiable.__init__(self)
         Nameable.__init__(self, name)
+        Qualifiable.__init__(self, attributes)
         self._formula = formula
         self._from_indicator = from_indicator
         self._processors_selector = processors_selector
