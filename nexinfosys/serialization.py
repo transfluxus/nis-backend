@@ -1,3 +1,4 @@
+import ast
 import logging
 
 from sqlalchemy.orm import class_mapper
@@ -150,11 +151,15 @@ def serialize_state(state: State):
         ns_ds[ns] = datasets
         state.set("_datasets", create_dictionary(), ns)  # Nullify datasets
 
+    logging.debug("  serialize_state IN 2")  # DELETEME
+
     # !!! WARNING: It destroys "state", so a DEEP COPY is performed !!!
     tmp = sys.getrecursionlimit()
-    sys.setrecursionlimit(10000)
+    sys.setrecursionlimit(2500)
     state2 = copy.deepcopy(state)
     sys.setrecursionlimit(tmp)
+
+    logging.debug("  serialize_state IN 3")  # DELETEME
 
     # Restore "_datasets"
     for ns in state.list_namespaces():
@@ -166,12 +171,9 @@ def serialize_state(state: State):
         if glb_idx:
             tmp = glb_idx.to_pickable()
             state2.set("_glb_idx", tmp, ns)
-        lcia_methods = state2.get("_lcia_methods", ns)
-        if lcia_methods:
-            tmp = lcia_methods.to_pickable()
-            state2.set("_lcia_methods", tmp, ns)
         _, _, _, datasets, _ = get_case_study_registry_objects(state, ns)
         datasets2 = create_dictionary()
+        logging.debug("  serialize_state IN 4")  # DELETEME
         # TODO Serialize other DataFrames.
         # Process Datasets
         for ds_name in datasets:
@@ -181,11 +183,17 @@ def serialize_state(state: State):
             else:
                 tmp = None
                 # ds.data = None
+            logging.debug(f"  serialize_state IN ds {ds_name}")  # DELETEME
+
             # DB serialize the datasets
             lst2 = serialize(ds.get_objects_list())
             lst2.append(tmp)  # Append the serialized DataFrame
             datasets2[ds_name] = lst2
+
+        logging.debug("  serialize_state IN 5")  # DELETEME
+
         state2.set("_datasets", datasets2, ns)
+    logging.debug("  serialize_state serialize preprocessed state ")
     tmp = serialize_from_object(state2)  # <<<<<<<< SLOWEST !!!! (when debugging)
     logging.debug("  serialize_state length: "+str(len(tmp))+" OUT")
     tmp = blosc.compress(bytearray(tmp, "utf-8"), cname="zlib", typesize=8)
@@ -229,9 +237,9 @@ def deserialize_state(st: str, state_version: int = MODEL_VERSION):
     # Iterate all namespaces
     for ns in state.list_namespaces():
         lcia_methods = state.get("_lcia_methods", ns)
-        if isinstance(lcia_methods, dict):
-            lcia_methods = PartialRetrievalDictionary().from_pickable(lcia_methods)
-            state.set("_lcia_methods", lcia_methods)
+        if lcia_methods:
+            _ = {ast.literal_eval(k): v for k,v in lcia_methods.items()}
+            state.set("_lcia_methods", _, ns)
         glb_idx = state.get("_glb_idx", ns)
         if isinstance(glb_idx, dict):
             glb_idx = PartialRetrievalDictionary().from_pickable(glb_idx)
