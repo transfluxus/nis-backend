@@ -67,7 +67,7 @@ global_functions = create_dictionary(data={i["name"]: i for i in
                       "full_name": "nexinfosys.command_generators.parser_ast_evaluators.lcia_method",
                       "kwargs": {},
                       "special_kwargs": {"IndicatorState": "state",
-                                         "LCIAMethods": "lcia_methods"}},
+                                         "LCIAMethods": "lcia_methods_dict"}},
                      {"name": "UDIF",  # "User Defined Indicator Function"
                       "full_name": "nexinfosys.command_generators.parser_ast_evaluators.call_udif_function",
                       "kwargs": {},

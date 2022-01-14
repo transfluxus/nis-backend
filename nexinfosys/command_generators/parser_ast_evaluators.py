@@ -119,7 +119,7 @@ def call_udif_function(function_name, state: State = None):
 
 def lcia_method(indicator: str, method: str = None, horizon: str = None, compartment: str = None,
                 subcompartment: str = None, category: str = None,
-                state: State = None, lcia_methods: PartialRetrievalDictionary = None):
+                state: State = None, lcia_methods_dict: Dict = None):
     """
 
     :param indicator: Indicator name
@@ -128,7 +128,7 @@ def lcia_method(indicator: str, method: str = None, horizon: str = None, compart
     :param compartment: Compartment to which the indicator applies
     :param subcompartment: Subcompartment to which the indicator applies
     :param state: Current values of processor plus parameters
-    :param lcia_methods: Where LCIA data is collected
+    :param lcia_methods_dict: Where LCIA data is collected
     :return: A dictionary with the indicators and calculated values
     """
     if indicator is None or indicator.strip() == "":
