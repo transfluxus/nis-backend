@@ -117,6 +117,9 @@ def call_udif_function(function_name, state: State = None):
     return obj
 
 
+lcia_methods = None  # type: PartialRetrievalDictionary
+
+
 def lcia_method(indicator: str, method: str = None, horizon: str = None, compartment: str = None,
                 subcompartment: str = None, category: str = None,
                 state: State = None, lcia_methods_dict: Dict = None):
@@ -131,6 +134,15 @@ def lcia_method(indicator: str, method: str = None, horizon: str = None, compart
     :param lcia_methods_dict: Where LCIA data is collected
     :return: A dictionary with the indicators and calculated values
     """
+    global lcia_methods
+    if not lcia_methods:
+        lcia_methods = PartialRetrievalDictionary()
+        from random import random
+        for k, v in lcia_methods_dict.items():
+            _ = dict(m=k[0], t=k[1], d=k[2], h=k[3], i=k[4], c=k[5], s=k[6])
+            # NOTE: a random() is generated just to grant that the tuple is unique
+            lcia_methods.put(_, (v[0], v[1], v[2], random()))
+
     if indicator is None or indicator.strip() == "":
         return None
 
