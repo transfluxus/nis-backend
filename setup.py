@@ -42,9 +42,15 @@ python3 setup.py sdist bdist_wheel
 twine upload --skip-existing dist/*
 
 https://pypi.org/project/nexinfosys/
+
+To run nis-frontend once nexinfosys is installed (locally it would be "python setup.py install"):
+
+export FLASK_APP=nexinfosys.restful_service.service_main
+flask run
+
 """
 package_name = 'nexinfosys'
-version = '0.75'
+version = '0.92'
 
 
 def parse_requirements(strs):

@@ -1,14 +1,9 @@
-import json
-import logging
-
 from typing import Dict, Any
 
 from nexinfosys.command_executors import BasicCommand, subrow_issue_message
 from nexinfosys.command_field_definitions import get_command_fields_from_class
-from nexinfosys.command_generators import Issue, IssueLocation, IType
-from nexinfosys.command_generators.parser_ast_evaluators import dictionary_from_key_value_list
+from nexinfosys.command_generators import IType
 from nexinfosys.common.helper import strcmp
-from nexinfosys.model_services import IExecutableCommand, get_case_study_registry_objects
 from nexinfosys.models.musiasem_concepts import Hierarchy, FactorType, FlowFundRoegenType
 
 
@@ -35,16 +30,7 @@ class InterfaceTypesCommand(BasicCommand):
         ft_unit = field_values.get("unit")
         ft_opposite_processor_type = field_values.get("opposite_processor_type")
         ft_level = field_values.get("level")
-        ft_attributes = field_values.get("attributes", {})
-        logging.debug(str(type(ft_attributes)))
-        if ft_attributes:
-            try:
-                ft_attributes = dictionary_from_key_value_list(ft_attributes, self._glb_idx)
-            except Exception as e:
-                self._add_issue(IType.ERROR, str(e)+subrow_issue_message(subrow))
-                return
-        else:
-            ft_attributes = {}
+        ft_attributes = self._transform_text_attributes_into_dictionary(field_values.get("attributes", ""))
 
         # Process
         # Mandatory fields

@@ -3,7 +3,7 @@ from typing import List, Dict, Union, Any, Tuple
 from nexinfosys.command_executors import BasicCommand, CommandExecutionError, subrow_issue_message
 from nexinfosys.command_field_definitions import get_command_fields_from_class
 from nexinfosys.command_generators import IType
-from nexinfosys.command_generators.parser_ast_evaluators import ast_evaluator, dictionary_from_key_value_list
+from nexinfosys.command_generators.parser_ast_evaluators import ast_evaluator
 from nexinfosys.command_generators.parser_field_parsers import string_to_ast, expression_with_parameters
 from nexinfosys.common.helper import strcmp, first, FloatOrString
 from nexinfosys.model_services import State
@@ -34,14 +34,7 @@ class ProcessorScalingsCommand(BasicCommand):
 
         ##
         # Transform text of "attributes" into a dictionary
-        if fields.get("attributes"):
-            try:
-                fields["attributes"] = dictionary_from_key_value_list(fields["attributes"], self._glb_idx)
-            except Exception as e:
-                self._add_issue(IType.ERROR, str(e)+subrow_issue_message(subrow))
-                return
-        else:
-            fields["attributes"] = {}
+        fields["attributes"] = self._transform_text_attributes_into_dictionary(fields["attributes"], subrow)
 
         # Process specific fields
 

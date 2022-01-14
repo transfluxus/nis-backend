@@ -388,16 +388,18 @@ class BasicCommand(IExecutableCommand):
 
             return interface_type
 
-    def _get_attributes_from_field(self, field_name: str) -> Dict:
-        attributes_list = self._fields[field_name]
-        attributes = {}
-        if attributes_list:
+    def _transform_text_attributes_into_dictionary(self, text_attributes: str, subrow=None) -> Dict:
+        dictionary_attributes = {}
+        if text_attributes:
             try:
-                attributes = dictionary_from_key_value_list(attributes_list, self._glb_idx)
+                dictionary_attributes = dictionary_from_key_value_list(text_attributes, self._glb_idx)
             except Exception as e:
-                raise CommandExecutionError(str(e))
+                raise CommandExecutionError(str(e) + subrow_issue_message(subrow))
 
-        return attributes
+        return dictionary_attributes
+
+    def _get_attributes_from_field(self, field_name: str) -> Dict:
+        return self._transform_text_attributes_into_dictionary(self._fields[field_name])
 
     def _get_interface_types_transform(self,
                                        source_interface_type: FactorType, source_processor: Processor,

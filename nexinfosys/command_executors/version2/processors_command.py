@@ -3,7 +3,6 @@ from typing import Dict, Any, Optional
 from nexinfosys.command_executors import BasicCommand, CommandExecutionError, subrow_issue_message
 from nexinfosys.command_field_definitions import get_command_fields_from_class
 from nexinfosys.command_generators import IType
-from nexinfosys.command_generators.parser_ast_evaluators import dictionary_from_key_value_list
 from nexinfosys.common.helper import strcmp
 from nexinfosys.ie_exports.geolayer import read_geojson
 from nexinfosys.models.musiasem_concepts import ProcessorsSet, ProcessorsRelationPartOfObservation, \
@@ -196,14 +195,8 @@ class ProcessorsCommand(BasicCommand):
     def _process_row(self, field_values: Dict[str, Any], subrow=None) -> None:
 
         # Transform text of "attributes" into a dictionary
-        if field_values.get("attributes"):
-            try:
-                field_values["attributes"] = dictionary_from_key_value_list(field_values["attributes"], self._glb_idx)
-            except Exception as e:
-                self._add_issue(IType.ERROR, str(e)+subrow_issue_message(subrow))
-                return
-        else:
-            field_values["attributes"] = {}
+        field_values["attributes"] = self._transform_text_attributes_into_dictionary(field_values.get("attributes"),
+                                                                                     subrow)
 
         # Process specific fields
 

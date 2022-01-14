@@ -6,7 +6,7 @@ from pint import DimensionalityError
 from nexinfosys.command_executors import BasicCommand, subrow_issue_message, CommandExecutionError
 from nexinfosys.command_field_definitions import get_command_fields_from_class
 from nexinfosys.command_generators import parser_field_parsers, IType
-from nexinfosys.command_generators.parser_ast_evaluators import dictionary_from_key_value_list, ast_to_string
+from nexinfosys.command_generators.parser_ast_evaluators import ast_to_string
 from nexinfosys.common.decorators import memoized_method
 from nexinfosys.common.helper import strcmp, first, ifnull, UnitConversion, head
 from nexinfosys.models.musiasem_concepts import PedigreeMatrix, FactorType, \
@@ -161,7 +161,7 @@ class InterfacesAndQualifiedQuantitiesCommand(BasicCommand):
             #                                  f"'{f_orientation}' already exists"+subrow_issue_message(subrow))
 
             # Transform text of "interface_attributes" into a dictionary
-            interface_attributes = self.transform_text_attributes_into_dictionary(
+            interface_attributes = self._transform_text_attributes_into_dictionary(
                 field_values.get("interface_attributes"), subrow)
             attributes.update(interface_attributes)
 
@@ -264,7 +264,7 @@ class InterfacesAndQualifiedQuantitiesCommand(BasicCommand):
             self.check_existence_of_pedigree_matrix(f_pedigree_matrix, f_pedigree, subrow)
 
             # Transform text of "number_attributes" into a dictionary
-            number_attributes = self.transform_text_attributes_into_dictionary(field_values.get("number_attributes"),
+            number_attributes = self._transform_text_attributes_into_dictionary(field_values.get("number_attributes"),
                                                                                subrow)
 
             o = _create_or_append_quantitative_observation(interface,
@@ -280,16 +280,6 @@ class InterfacesAndQualifiedQuantitiesCommand(BasicCommand):
 
             # TODO Register? Disable for now. Observation can be obtained from a pass over all Interfaces
             # glb_idx.put(o.key(), o)
-
-    def transform_text_attributes_into_dictionary(self, text_attributes: str, subrow) -> Dict:
-        dictionary_attributes = {}
-        if text_attributes:
-            try:
-                dictionary_attributes = dictionary_from_key_value_list(text_attributes, self._glb_idx)
-            except Exception as e:
-                raise CommandExecutionError(str(e) + subrow_issue_message(subrow))
-
-        return dictionary_attributes
 
     def find_processor(self, processor_name, subrow) -> Processor:
         # Find Processor
