@@ -46,7 +46,7 @@ class ScalarIndicatorsCommand(BasicCommand):
         indicator = Indicator(fields["indicator_name"],
                               fields["formula"],
                               None,
-                              fields.get("processors_selector"),  # Not gathered from worksheet
+                              fields.get("processors_selector"),
                               benchmarks,
                               IndicatorCategories.factors_expression if strcmp(fields.get("local"), "Yes")
                               else IndicatorCategories.case_study,

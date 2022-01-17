@@ -283,6 +283,8 @@ def obtain_subset_of_processors(processors_selector: str, serialized_model: lxml
     return results, processors
 
 
+# Aggregator functions, for global scalar indicators
+
 def aggregator_generic(funct, field: str, xquery: str = None, scope: str = 'Total', processors_dom=None,
                        processors_map=None, df_group=None, df_indicators_group=None):
     """

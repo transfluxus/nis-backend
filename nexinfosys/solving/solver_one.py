@@ -2,8 +2,8 @@
 # ######################################################################################################################
 # GRAPH PARTITIONING - SCENARIO (PARAMETERS), SINGLE SCENARIO PARTITION CATEGORIES, IN-SCENARIO OBSERVATIONS VARIATION
 # ######################################################################################################################
-from model_services import get_case_study_registry_objects
 import networkx as nx
+from nexinfosys.model_services import get_case_study_registry_objects
 
 
 def get_contexts(objects):

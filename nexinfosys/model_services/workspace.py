@@ -31,7 +31,8 @@ from nexinfosys.models.musiasem_methodology_support import (User,
                                                             DBSession)
 from nexinfosys.serialization import serialize_state, deserialize_state
 from nexinfosys.solving import BasicQuery
-from nexinfosys.solving.flow_graph_solver import flow_graph_solver, evaluate_parameters_for_scenario, get_dataset
+from nexinfosys.solving.flow_graph_outputs import get_dataset
+from nexinfosys.solving.flow_graph_solver import flow_graph_solver, evaluate_parameters_for_scenario
 
 logger = logging.getLogger(__name__)
 

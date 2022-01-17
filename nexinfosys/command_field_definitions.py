@@ -429,6 +429,7 @@ command_fields: Dict[str, List[CommandField]] = {
         CommandField(allowed_names=["Indicator"], name="indicator_name", mandatory=True, parser=simple_ident),
         # IndicatorName (Indicators)
         CommandField(allowed_names=["Local"], name="local", mandatory=True, allowed_values=yes_no, parser=simple_ident),
+        CommandField(allowed_names=["Processors"], name="processors_selector", parser=processors_selector_expression),
         CommandField(allowed_names=["Formula", "Expression"], name="formula", mandatory=True,
                      parser=indicator_expression),
         # A call to LCIAMethod function, with parameter IndicatorMethod (Indicators)
