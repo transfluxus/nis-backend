@@ -962,7 +962,7 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
     """
     try:
         issues: List[Issue] = []
-        glb_idx, _, _, datasets, _ = get_case_study_registry_objects(global_state)
+        glb_idx, _, _, _, _ = get_case_study_registry_objects(global_state)
         init_processor_full_names(glb_idx)
 
         # Get available observations
@@ -1115,10 +1115,9 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                 except SolvingException as e:
                     return [Issue(IType.ERROR, f"Scenario '{scenario_name}' - period '{time_period}'. {e.args[0]}")]
 
-        # Prepare all output information
+        # Prepare all output information (store it in the global state, variable "datasets")
         #  - Indicators are calculated inside
-        export_solver_data(datasets, total_results, dynamic_scenario, global_state, global_parameters,
-                           problem_statement)
+        export_solver_data(global_state, total_results, dynamic_scenario, global_parameters, problem_statement)
 
         return issues
     except SolvingException as e:
