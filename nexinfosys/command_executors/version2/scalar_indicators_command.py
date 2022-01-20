@@ -43,13 +43,19 @@ class ScalarIndicatorsCommand(BasicCommand):
 
         attributes = self._transform_text_attributes_into_dictionary(fields["attributes"], subrow)
 
+        if strcmp(fields.get("local"), "Yes") or strcmp(fields.get("local"), "Local"):
+            indicator_type = IndicatorCategories.factors_expression
+        elif strcmp(fields.get("local"), "No") or strcmp(fields.get("local"), "Global"):
+            indicator_type = IndicatorCategories.case_study
+        else:
+            indicator_type = IndicatorCategories.system
+
         indicator = Indicator(fields["indicator_name"],
                               fields["formula"],
                               None,
                               fields.get("processors_selector"),
                               benchmarks,
-                              IndicatorCategories.factors_expression if strcmp(fields.get("local"), "Yes")
-                              else IndicatorCategories.case_study,
+                              indicator_type,
                               fields.get("description"),
                               fields["indicators_group"],
                               fields["unit"],

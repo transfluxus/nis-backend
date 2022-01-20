@@ -2807,7 +2807,8 @@ class Benchmark(Nameable, Identifiable, Encodable):
 class IndicatorCategories(Enum):  # Used in FlowFund
     factor_types_expression = 1  # It can be instantiated into several processors, generating "factors_expression" indicators. At the same time, it may serve to compute the accumulated of these processors
     factors_expression = 2  # An example is a Metabolic Rate of a processor. Can be originated from a "factor_types_expression"
-    case_study = 3  # An expression operating on factors of from different parts of the case study
+    case_study = 3  # An expression operating on factors/indicators of from different parts of the case study
+    system = 4  # An expression operating on factors/indicators
 
 
 class Indicator(Nameable, Identifiable, Qualifiable, Encodable):

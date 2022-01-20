@@ -27,6 +27,7 @@ orientations = ["Input", "Output"]
 yes_no = ["Yes", "No"]  # Default "Yes"
 no_yes = ["No", "Yes"]  # Default "No"
 functional_or_structural = ["Functional", "Structural", "Notional"]
+scalar_indicator_type = ["Yes", "No", "Local", "System", "Global"]  # Default "Yes"
 instance_or_archetype = ["Yes", "No", "Instance",
                          "Archetype"]  # Yes/No -> Instead of "instance/archetype", now the field is "Accounted"
 copy_interfaces_mode = ["No", "FromParent", "FromChildren", "Bidirectional"]
@@ -428,7 +429,8 @@ command_fields: Dict[str, List[CommandField]] = {
         # IndicatorType (Indicators)
         CommandField(allowed_names=["Indicator"], name="indicator_name", mandatory=True, parser=simple_ident),
         # IndicatorName (Indicators)
-        CommandField(allowed_names=["Local"], name="local", mandatory=True, allowed_values=yes_no, parser=simple_ident),
+        CommandField(allowed_names=["Type", "Local"], name="local", mandatory=True, allowed_values=scalar_indicator_type,
+                     parser=simple_ident),
         CommandField(allowed_names=["Processors"], name="processors_selector", parser=processors_selector_expression),
         CommandField(allowed_names=["Formula", "Expression"], name="formula", mandatory=True,
                      parser=indicator_expression),
