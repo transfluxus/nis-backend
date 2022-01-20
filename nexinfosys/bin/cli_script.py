@@ -12,8 +12,6 @@ import fire
 import platform
 import sys
 
-print(f"Executable: {sys.executable}; V: {sys.version}; {platform.python_build()}; CONDA_PREFIX: {os.getenv('CONDA_PREFIX')}")
-
 from nexinfosys.command_generators import Issue, IType
 from nexinfosys.common.helper import download_file, generate_json
 from nexinfosys.embedded_nis import NIS
@@ -58,6 +56,12 @@ def get_valid_name(original_name):
 
 def get_file_url(fn):
     return "file:" + urllib.request.pathname2url(fn)
+
+
+def print_sys_info(show_sys_info):
+    if show_sys_info:
+        print(f"Executable: {sys.executable}; V: {sys.version}; {platform.python_build()}; "
+              f"CONDA_PREFIX: {os.getenv('CONDA_PREFIX')}")
 
 
 def read_submit_solve_nis_file(nis_file_url: str, state: State, solve=False) -> Tuple[NIS, List[Issue]]:
@@ -286,7 +290,7 @@ nexinfosys solve https://docs.google.com/spreadsheets/d/1C5xNGvdORWqrWL6Ux2nBXMd
 nexinfosys solve https://docs.google.com/spreadsheets/d/1C5xNGvdORWqrWL6Ux2nBXMdX51ktEDJCmFdDrbFrhX4/edit#gid=0 /home/rnebot/tmp/example1withValues --datasets="flow_graph_solution.csv"
 
     """
-    def parse(self, file: str, work_path: str, datasets: str = "", force_refresh: bool = False, log: str = None):
+    def parse(self, file: str, work_path: str, datasets: str = "", force_refresh: bool = False, log: str = None, sys_info: bool = False):
         """
         Parse and retrieve datasets
 
@@ -295,15 +299,17 @@ nexinfosys solve https://docs.google.com/spreadsheets/d/1C5xNGvdORWqrWL6Ux2nBXMd
         :param datasets: Comma separated list of datasets to export
         :param force_refresh: True to force parsing even if the main file has not changed
         :param log: Set log level to one of: Error (E, Err), Debug (D), Warning (W, Warn), Info (I), Off, Critical (Fatal)
+        :param sys_info: Print system information
         :return:
         """
+        print_sys_info(sys_info)
         set_log_level_from_cli_param(log)
         os.makedirs(work_path, exist_ok=True)
         state, _, issues = prepare_base_state(file, False, work_path, force_refresh)
         print_issues("Parsing", file, issues)
         write_results(state, work_path, datasets)
 
-    def solve(self, file: str, work_path: str, datasets: str = "", force_refresh: bool = False, log: str = None):
+    def solve(self, file: str, work_path: str, datasets: str = "", force_refresh: bool = False, log: str = None, sys_info: bool = False):
         """
         Parse, solve and retrieve datasets
 
@@ -312,8 +318,10 @@ nexinfosys solve https://docs.google.com/spreadsheets/d/1C5xNGvdORWqrWL6Ux2nBXMd
         :param datasets: Comma separated list of datasets to export
         :param force_refresh: True to force parsing and solving even if the main file has not changed
         :param log: Set log level to one of: Error (E, Err), Debug (D), Warning (W, Warn), Info (I), Off, Critical (Fatal)
+        :param sys_info: Print system information
         :return:
         """
+        print_sys_info(sys_info)
         set_log_level_from_cli_param(log)
         os.makedirs(work_path, exist_ok=True)
         state, _, issues = prepare_base_state(file, True, work_path, force_refresh)
@@ -321,7 +329,8 @@ nexinfosys solve https://docs.google.com/spreadsheets/d/1C5xNGvdORWqrWL6Ux2nBXMd
         write_results(state, work_path, datasets)
 
     def solve_dynamic_scenario(self, file: str, work_path: str, params_file_path: str = "",
-                               datasets: str = "", force_refresh: bool = False, log: str = None):
+                               datasets: str = "", force_refresh: bool = False,
+                               log: str = None, sys_info: bool = False):
         """
         Run (solve) dynamic scenario and get output datasets
 
@@ -331,8 +340,10 @@ nexinfosys solve https://docs.google.com/spreadsheets/d/1C5xNGvdORWqrWL6Ux2nBXMd
         :param datasets: Comma separated list of datasets to export
         :param force_refresh: True to force parsing and solving even if the main file has not changed
         :param log: Set log level to one of: Error (E, Err), Debug (D), Warning (W, Warn), Info (I), Off, Critical (Fatal)
+        :param sys_info: Print system information
         :return:
         """
+        print_sys_info(sys_info)
         set_log_level_from_cli_param(log)
         os.makedirs(work_path, exist_ok=True)
         state, _, issues = prepare_base_state(file, True, work_path, force_refresh)
