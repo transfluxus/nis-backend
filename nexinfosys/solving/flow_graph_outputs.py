@@ -4,6 +4,7 @@ import traceback
 from typing import Dict, List, NoReturn
 
 import lxml
+import numpy as np
 import pandas as pd
 import toposort
 from lxml import etree
@@ -54,7 +55,7 @@ def compute_dataframe_sankey(results: ResultDict) -> pd.DataFrame:
     return df.sort_index()
 
 
-def export_solver_data(datasets, results, dynamic_scenario, state, global_parameters, problem_statement) -> NoReturn:
+def export_solver_data(state, results, dynamic_scenario, global_parameters, problem_statement) -> NoReturn:
     def get_indicators_evaluation_order(indicators: List[Indicator]) -> List[Indicator]:
         # Prepare a dictionary of indicators with indicators they depend on
         indicators_dict = create_dictionary(data={i.name: i for i in indicators})
@@ -68,12 +69,12 @@ def export_solver_data(datasets, results, dynamic_scenario, state, global_parame
             _, variables = ast_evaluator(ast, state, None, issues)
             for variable in variables:
                 if variable in indicators_dict:
-                    dependencies.add(indicators_dict[variable.name].name)
+                    dependencies.add(indicators_dict[variable].name)
             indicator_dependencies[indicator.name] = dependencies
         # Find the order of evaluation
         return [indicators_dict[ind] for ind in toposort.toposort_flatten(indicator_dependencies)]
 
-    glb_idx, _, _, _, _ = get_case_study_registry_objects(state)
+    glb_idx, _, _, datasets, _ = get_case_study_registry_objects(state)
 
     data = {result_key.as_string_tuple() + node.full_key:
                 {"RoegenType": node.roegen_type if node else "-",
@@ -123,15 +124,13 @@ def export_solver_data(datasets, results, dynamic_scenario, state, global_parame
     df_without_conflicts = get_conflicts_filtered_dataframe(df)
     inplace_case_sensitiveness_dataframe(df_without_conflicts)
 
-    # Calculate ScalarIndicators (Local and Global)
+    # Calculate ScalarIndicators (Local, System and Global)
     # First, parse all indicators to find the evaluation order
     indicators_order = get_indicators_evaluation_order(indicators)
     # Then, evaluate the indicators in the order of evaluation
     df_local_indicators, df_global_indicators = calculate_scalar_indicators(
         indicators_order, dom_tree, p_map, df_without_conflicts, global_parameters, problem_statement, state
     )
-    # df_local_indicators = calculate_local_scalar_indicators(indicators, dom_tree, p_map, df_without_conflicts, global_parameters, problem_statement, state)
-    # df_global_indicators = calculate_global_scalar_indicators(indicators, dom_tree, p_map, df_without_conflicts, df_local_indicators, global_parameters, problem_statement, state)
 
     # Calculate benchmarks
     ds_benchmarks = calculate_local_benchmarks(df_local_indicators,
@@ -289,6 +288,207 @@ def inplace_case_sensitiveness_dataframe(df: pd.DataFrame):
                                        verify_integrity=False)
 
 
+def prepare_state(indicators_, system_indicators, global_indicators, scenario_params, registry,
+                  scenario, system, period, scope, processor_name, group, account_nas):
+    if processor_name:
+        # Find processor(s)
+        processor = registry.get(Processor.partial_key(processor_name))[0]
+    else:
+        processor = None
+    if not system and processor:  # Obtain default system
+        system = processor.processor_system
+
+    d = {}
+    # Parameters (they have priority over previous values, except global indicators)
+    d.update(scenario_params.get(scenario, {}))
+    # Global Indicator values
+    if global_indicators:
+        d.update(global_indicators.get((scenario, period, scope), {}))
+    if system_indicators and system:
+        d.update(system_indicators.get((scenario, system, period, scope), {}))
+    if processor_name:
+        # Local Indicator values
+        if indicators_:
+            d.update(indicators_.get((processor, scenario, system, period, scope), {}))
+        # Processor attributes
+        d.update({k: v for k, v in processor.custom_attributes().items()})
+        # Interface values
+        if "Interface" in group.index.names:
+            iface_idx = group.index.names.index("Interface")
+        else:
+            iface_idx = -1
+        iface_type_idx = group.index.names.index("InterfaceType")
+        orient_idx = group.index.names.index("Orientation")
+        ifaces = group.index.get_level_values(iface_type_idx).values if case_sensitive \
+            else group.index.get_level_values(iface_type_idx).str.lower().values
+        orient = group.index.get_level_values(orient_idx).values if case_sensitive \
+            else group.index.get_level_values(orient_idx).str.lower().values
+        values = group["Value"].values
+        if case_sensitive:
+            d.update({k: v for k, v in zip(ifaces, values)})
+            d.update({f"{k}_{k2}": v for k, k2, v in zip(ifaces, orient, values)})
+        else:
+            d.update({k.lower(): v for k, v in zip(ifaces, values)})
+            d.update({f"{k}_{k2}".lower(): v for k, k2, v in zip(ifaces, orient, values)})
+        if account_nas:
+            # Add interfaces which are currently not in the dictionary
+            # (declared but with no value: "not available".
+            #  If not declared they are "not applicable" (does not apply))
+            for iface in processor.factors:
+                if case_sensitive:
+                    if iface.name not in d:
+                        d[iface.name] = math.nan
+                else:
+                    if iface.name.lower() not in d:
+                        d[iface.name.lower()] = math.nan
+    else:
+        processor = None
+
+    return d, processor
+
+
+def select_processor_by_name(processor_names, processor_name: str) -> bool:
+    """ Used to decide which processors are included in calculations of indicators """
+    if processor_names is None or len(processor_names) == 0:
+        return True
+    else:
+        return processor_name in processor_names
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# AGGREGATE FUNCTIONS, FOR SYSTEM AND GLOBAL SCALAR INDICATORS
+
+def aggregate_generic(funct,
+                      expression: str, xquery: str = None, scope: str = 'Total', registry=None,
+                      processors_dom=None, processors_map=None, processor_names=None,
+                      df_group=None, lcia_methods=None, indicators_tmp=None):
+    """
+    AGGREGATE "field" for all processors meeting the XQuery and scope, applying aggregator "funct"
+
+    :param funct: Function to call
+    :param expression:
+    :param xquery:
+    :param processors_dom:
+    :param processors_map:
+    :param df_group:
+    :return:
+    """
+    p_t, g = df_group
+    is_global = len(p_t) == 3
+    indicators_dict, system_indicators, global_indicators, scenario_params = indicators_tmp
+    if is_global:
+        sub_idx_names = ["Processor"]
+        scenario, period, scope = p_t
+        system = None
+    else:
+        sub_idx_names = ["Processor"]
+        scenario, period, scope, system = p_t
+
+    # Filter processors
+    p_map = processors_map  # Processors map
+    serialized_model = processors_dom  # Used to search for processors
+    processors_selector = xquery
+    if processors_selector:
+        inv_map = {v: k for k, v in p_map.items()}
+        processors = obtain_processors(processors_selector, serialized_model, p_map)
+        processor_names_ = set([inv_map[p] for p in processors])
+    else:
+        processor_names_ = set()
+    if processor_names:
+        processor_names_.intersection_update(processor_names)
+
+    issues = []
+    values = {}
+    for t_, g_ in g.groupby(sub_idx_names):
+        processor_name = t_
+
+        # Check if it is wanted to calculate the indicator for the processor
+        if not select_processor_by_name(processor_names, processor_name):
+            continue
+        d, proc = prepare_state(indicators_dict, system_indicators, global_indicators, scenario_params,
+                                registry,
+                                scenario, system, period, scope, processor_name,
+                                group=g, account_nas=False)
+        state = State(d)
+        # LCIA Methods, for the special "lciamethods" function
+        state.set("_lcia_methods", lcia_methods)
+
+        # Evaluate!!
+        val, variables = ast_evaluator(expression, state, None, issues, account_nas_name=None)
+        if val:
+            values[processor_name] = val
+        else:
+            values[processor_name] = None
+
+    vals = np.array(list(filter(None, values.values())))
+    if len(vals) > 0:
+        return funct(vals)
+    else:
+        return None
+
+
+def aggregate_sum(expression, xquery: str = None, scope: str = 'Total',
+                  registry: PartialRetrievalDictionary=None, processors_dom=None,
+                  processors_map=None, processor_names=None, df_group=None,
+                  lcia_methods=None, indicators_tmp=None):
+    return aggregate_generic(np.nansum,
+                             expression, xquery, scope, registry,
+                             processors_dom, processors_map, processor_names,
+                             df_group, lcia_methods, indicators_tmp)
+
+
+def aggregate_avg(expression, xquery: str = None, scope: str = 'Total',
+                  registry: PartialRetrievalDictionary=None, processors_dom=None,
+                  processors_map=None, processor_names=None, df_group=None,
+                  lcia_methods=None, indicators_tmp=None):
+    return aggregate_generic(np.nanavg,
+                             expression, xquery, scope, registry,
+                             processors_dom, processors_map, processor_names,
+                             df_group, lcia_methods, indicators_tmp)
+
+
+def aggregate_max(expression, xquery: str = None, scope: str = 'Total',
+                  registry: PartialRetrievalDictionary=None, processors_dom=None,
+                  processors_map=None, processor_names=None, df_group=None,
+                  lcia_methods=None, indicators_tmp=None):
+    return aggregate_generic(np.nanmax,
+                             expression, xquery, scope, registry,
+                             processors_dom, processors_map, processor_names,
+                             df_group, lcia_methods, indicators_tmp)
+
+
+def aggregate_min(expression, xquery: str = None, scope: str = 'Total',
+                  registry: PartialRetrievalDictionary=None, processors_dom=None,
+                  processors_map=None, processor_names=None, df_group=None,
+                  lcia_methods=None, indicators_tmp=None):
+    return aggregate_generic(np.nanmin,
+                             expression, xquery, scope, registry,
+                             processors_dom, processors_map, processor_names,
+                             df_group, lcia_methods, indicators_tmp)
+
+
+def aggregate_count(expression, xquery: str = None, scope: str = 'Total',
+                    registry: PartialRetrievalDictionary=None, processors_dom=None,
+                    processors_map=None, processor_names=None, df_group=None,
+                    lcia_methods=None, indicators_tmp=None):
+    return aggregate_generic(lambda v: len(v),
+                             expression, xquery, scope, registry,
+                             processors_dom, processors_map, processor_names,
+                             df_group, lcia_methods, indicators_tmp)
+
+
+def aggregate_nan_count(expression, xquery: str = None, scope: str = 'Total',
+                        registry: PartialRetrievalDictionary=None, processors_dom=None,
+                        processors_map=None, processor_names=None, df_group=None,
+                        lcia_methods=None, indicators_tmp=None):
+    return aggregate_generic(lambda v: sum(np.isnan(v)),
+                             expression, xquery, scope, registry,
+                             processors_dom, processors_map, processor_names,
+                             df_group, lcia_methods, indicators_tmp)
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
 def calculate_scalar_indicators(indicators: List[Indicator],
                                 serialized_model: lxml.etree._ElementTree,
                                 p_map: Dict[str, Processor],
@@ -309,58 +509,124 @@ def calculate_scalar_indicators(indicators: List[Indicator],
     :return: (pd.DataFrame, pd.DataFrame) with all the local and global indicators
     """
 
-    # The "columns" in the index of "results" are:
+    # The "columns" in the Index of "results" pd.DataFrame are:
     # 'Scenario', 'System', 'Period', 'Scope', 'Processor', 'Interface', 'Orientation'
     # Group by: 'Scenario', 'System', 'Period', 'Scope', 'Processor'
-    # Rearrange: 'Interface' and 'Orientation'
+    #   Rearrange: 'Interface' and 'Orientation'
     local_idx_names = ["Scenario", "System", "Period", "Scope",
                        "Processor"]  # Changing factors. If this changes, update indices below
-    global_idx_names = ["Scenario", "Period"]  # "System", "Scope"
+    system_idx_names = ["Scenario", "Period", "Scope", "System"]
+    global_idx_names = ["Scenario", "Period", "Scope"]  # "System"
 
-    def select_processor_by_name(processor_names, processor_name: str) -> bool:
-        if processor_names is None or len(processor_names) == 0:
-            return True
-        else:
-            return processor_name in processor_names
+    # Variables global to the function and subfunctions
+    registry, _, _, _, _ = get_case_study_registry_objects(global_state)
 
-    def prepare_state(processor_indicators, global_indicators, scenario_params, registry,
-                      scenario, system, period, scope, processor_name, group, account_nas):
-        # Find processor(s)
-        # TODO SYSTEM ?? Processor.partial_key(processor_name, system=system)
-        processor = registry.get(Processor.partial_key(processor_name))[0]
-        # Processor attributes
-        d = {k: v for k, v in processor.custom_attributes().items()}
-        # Interface values
-        ifaces = group.index.get_level_values(4).values if case_sensitive \
-            else group.index.get_level_values(4).str.lower().values
-        orient = group.index.get_level_values(5).values if case_sensitive \
-            else group.index.get_level_values(5).str.lower().values
-        values = group["Value"].values
-        if case_sensitive:
-            d.update({k: v for k, v in zip(ifaces, values)})
-            d.update({f"{k}_{k2}": v for k, k2, v in zip(ifaces, orient, values)})
+    # Scenario parameters
+    scenario_params = create_dictionary()
+    for scenario_name, scenario_exp_params in problem_statement.scenarios.items():  # type: str, dict
+        scenario_params[scenario_name] = evaluate_parameters_for_scenario(global_parameters, scenario_exp_params)
+        if not case_sensitive:
+            scenario_params[scenario_name] = {k.lower(): v for k, v in scenario_params[scenario_name].items()}
+
+    local_idx_to_change = ["Interface"]
+    global_idx_to_change = []
+    results_for_global = results.copy()
+    results.reset_index(local_idx_to_change, inplace=True)
+    results_for_global.reset_index(global_idx_to_change, inplace=True)
+
+    # An entry per tuple (processor, scenario, system, period, scope).
+    #   For each entry, a dictionary of indicators calculated for the tuple
+    processor_indicators = {}
+    # An entry per tuple (scenario, system, period, scope). For each system, a dictionary with global indicators (global indicators can be
+    # per-system, or all-systems. The dictionary key is a tuple (scenario, period, system)
+    system_indicators = {}
+    global_indicators = {}
+
+    def calculate_system_or_global_scalar_indicator(indicator: Indicator) -> pd.DataFrame:
+        """
+        One global indicator
+
+        :param indicator:
+        :return:
+        """
+
+        # Interfaces resulting from solve process
+        df = results_for_global
+
+        # Parse the expression
+        ast = string_to_ast(indicator_expression, indicator.formula if case_sensitive else indicator.formula.lower())
+
+        is_global = indicator._indicator_category == IndicatorCategories.case_study  # True: all system; False: per system
+        if is_global:
+            idx_names = global_idx_names
+            sub_idx_names = ["Processor"]
+            indicators_dict = global_indicators
         else:
-            d.update({k.lower(): v for k, v in zip(ifaces, values)})
-            d.update({f"{k}_{k2}".lower(): v for k, k2, v in zip(ifaces, orient, values)})
-        if account_nas:
-            # Add interfaces which are currently not in the dictionary
-            # (declared but with no value: "not available".
-            #  If not declared they are "not applicable" (does not apply))
-            for iface in processor.factors:
-                if case_sensitive:
-                    if iface.name not in d:
-                        d[iface.name] = math.nan
-                else:
-                    if iface.name.lower() not in d:
-                        d[iface.name.lower()] = math.nan
-        # Local Indicator values
-        d.update(processor_indicators.get((processor, scenario, system, period, scope), {}))
-        # Parameters (they have priority over previous values, except global indicators)
-        d.update(scenario_params.get(scenario, {}))
-        # Global Indicator values
-        d.update(global_indicators.get(system, {}))
-        d.update(global_indicators.get("all", {}))
-        return d, processor
+            idx_names = system_idx_names
+            sub_idx_names = ["System", "Processor"]
+            indicators_dict = system_indicators
+
+        # Obtain subset of processors, if "processors_selector" is defined
+        if indicator.processors_selector:
+            inv_map = {v: k for k, v in p_map.items()}
+            processors = obtain_processors(indicator.processors_selector, serialized_model, p_map)
+            processor_names = set([inv_map[p] for p in processors])
+        else:
+            processor_names = set()
+
+        issues = []
+        new_df_rows_idx = []
+        new_df_rows_data = []
+        for t, g in df.groupby(idx_names):  # "t", tuple characterizing the group; "g", values in the group
+            scenario = t[0]
+            period = t[1]
+            scope = t[2]
+            if not is_global:
+                system = t[3]
+                p_t = (scenario, period, scope, system)  # System
+            else:
+                system = None
+                p_t = (scenario, period, scope)  # Global
+
+            state = State(dict(_processors_map=p_map,
+                               _processors_dom=serialized_model,
+                               _df_group=(p_t, g),
+                               _indicators_tmp=(processor_indicators, system_indicators,
+                                                global_indicators, scenario_params),
+                               _processor_names=processor_names,
+                               _glb_idx=global_state.get("_glb_idx"),
+                               _lcia_methods=global_state.get("_lcia_methods")))
+            d, _ = prepare_state(processor_indicators, system_indicators, global_indicators, scenario_params,
+                                 registry, scenario, system, period, scope, None,
+                                 group=g, account_nas=False)
+            state.update(d)
+
+            val, variables = ast_evaluator(ast, state, None, issues, allowed_functions=global_functions_extended)
+
+            # Gather results
+            if val is not None:  # If it was possible to evaluate ... append a new row
+                if not isinstance(val, dict):  # LCIA method returns a Dict
+                    val = {indicator.name: val}
+
+                for k, v in val.items():
+                    l = list(t)
+                    if is_global:
+                        l.append("All")
+                    l.append(k)
+                    t2 = tuple(l)
+                    if p_t not in indicators_dict:
+                        indicators_dict[p_t] = {}
+                    indicators_dict[p_t][k] = v
+                    new_df_rows_idx.append(t2)  # (scenario, system, period, scope, processor, INDICATOR)
+                    # TODO Take indicator unit from the Indicators
+                    #  previously, make sure calculations are performed properly
+                    new_df_rows_data.append((v, None))  # (value, unit)
+
+        # Construct pd.DataFrame with the result of the scalar indicator calculation
+        df2 = pd.DataFrame(data=new_df_rows_data,
+                           index=pd.MultiIndex.from_tuples(new_df_rows_idx, names=system_idx_names + ["Indicator"]),
+                           columns=["Value", "Unit"])
+        return df2
 
     def calculate_local_scalar_indicator(indicator: Indicator) -> pd.DataFrame:
         """
@@ -375,13 +641,6 @@ def calculate_scalar_indicators(indicators: List[Indicator],
 
         # Parse the expression
         ast = string_to_ast(indicator_expression, indicator.formula if case_sensitive else indicator.formula.lower())
-
-        # Scenario parameters
-        scenario_params = create_dictionary()
-        for scenario_name, scenario_exp_params in problem_statement.scenarios.items():  # type: str, dict
-            scenario_params[scenario_name] = evaluate_parameters_for_scenario(global_parameters, scenario_exp_params)
-            if not case_sensitive:
-                scenario_params[scenario_name] = {k.lower(): v for k, v in scenario_params[scenario_name].items()}
 
         issues = []
         new_df_rows_idx = []
@@ -401,13 +660,14 @@ def calculate_scalar_indicators(indicators: List[Indicator],
             period = t[2]
             scope = t[3]
             processor_name = t[4]
+
             # Check if it is wanted to calculate the indicator for the processor
             if not select_processor_by_name(processor_names, processor_name):
                 continue
-            d, proc = prepare_state(processor_indicators, global_indicators, scenario_params, registry,
-                                    scenario, system, period, scope, processor_name,
-                                    group=g, account_nas=account_nas)
 
+            d, proc = prepare_state(processor_indicators, system_indicators, global_indicators, scenario_params,
+                                    registry, scenario, system, period, scope, processor_name,
+                                    group=g, account_nas=account_nas)
             state = State(d)
             # LCIA Methods, for the special "lciamethods" function
             state.set("_lcia_methods", global_state.get("_lcia_methods"))
@@ -421,8 +681,9 @@ def calculate_scalar_indicators(indicators: List[Indicator],
             # Evaluate!!
             val, variables = ast_evaluator(ast, state, None, issues,
                                            account_nas_name=indicator.name if account_nas else None)
-            p_t = (proc, scenario, system, period, scope)
+
             # Gather results
+            p_t = (proc, scenario, system, period, scope)  # Local
             if val is not None:  # If it was possible to evaluate ... append a new row
                 if isinstance(val, dict):  # LCIA method returns a Dict, or any formula when "account_nas=True"
                     # Two options for the naming of resulting indicators:
@@ -467,7 +728,7 @@ def calculate_scalar_indicators(indicators: List[Indicator],
                     t2 = tuple(l)
                     if p_t not in processor_indicators:
                         processor_indicators[p_t] = {}
-                    processor_indicators[p_t][indicator.name] = v
+                    processor_indicators[p_t][indicator.name] = val
                     # TODO processor name may be "system::processor"??
                     new_df_rows_idx.append(t2)  # (scenario, system, period, scope, processor, INDICATOR)
                     new_df_rows_data.append((val, None))  # (value, unit)
@@ -478,70 +739,8 @@ def calculate_scalar_indicators(indicators: List[Indicator],
                            columns=["Value", "Unit"])
         return df2
 
-    def calculate_global_scalar_indicator(indicator: Indicator) -> pd.DataFrame:
-        """
-        One global indicator
-
-        :param indicator:
-        :return:
-        """
-
-        df = results_for_global
-
-        # Parse the expression
-        ast = string_to_ast(indicator_expression, indicator.formula if case_sensitive else indicator.formula.lower())
-
-        # Scenario parameters
-        scenario_params = create_dictionary()
-        for scenario_name, scenario_exp_params in problem_statement.scenarios.items():  # type: str, dict
-            scenario_params[scenario_name] = evaluate_parameters_for_scenario(global_parameters, scenario_exp_params)
-
-        issues = []
-        new_df_rows_idx = []
-        new_df_rows_data = []
-        for t, g in df.groupby(global_idx_names):  # GROUP BY Scenario, Period
-            params = scenario_params[t[0]]  # Obtain parameter values from scenario, in t[0]
-            # TODO Local indicators from the selected processors, for the selected Scenario, Period, Scope
-            local_indicators_extract = pd.DataFrame()
-            # TODO If a specific indicator or interface from a processor is mentioned, put it as a variable
-            # Variables for aggregator functions (which should be present in the AST)
-            d = dict(_processors_map=p_map,
-                     _processors_dom=serialized_model,
-                     _df_group=g,
-                     _df_indicators_group=local_indicators_extract)
-            # Include parameters (with priority)
-            d.update(params)
-            if not case_sensitive:
-                d = {k.lower(): v for k, v in d.items()}
-
-            state = State(d)
-            val, variables = ast_evaluator(ast, state, None, issues, allowed_functions=global_functions_extended)
-
-            if val is not None:
-                new_df_rows_idx.append(t)  # (scenario, period)
-                new_df_rows_data.append((indicator.name, val, None))
-        logging.debug(issues)
-        # Construct pd.DataFrame with the result of the scalar indicator calculation
-        df2 = pd.DataFrame(data=new_df_rows_data,
-                           index=pd.MultiIndex.from_tuples(new_df_rows_idx, names=global_idx_names),
-                           columns=["Indicator", "Value", "Unit"])
-        return df2
-
     # -----------------------------------------------------------------------------------------------------------------
     # MAIN of CALCULATE_SCALAR_INDICATORS
-    registry, _, _, _, _ = get_case_study_registry_objects(global_state)
-
-    local_idx_to_change = ["Interface"]
-    global_idx_to_change = []
-    results_for_global = results.copy()
-    results.reset_index(local_idx_to_change, inplace=True)
-    results_for_global.reset_index(global_idx_to_change, inplace=True)
-
-    # An entry per processor. For each entry, a dictionary of indicators calculated for the processor
-    processor_indicators = {}
-    # An entry per system. For each system, a dictionary with global indicators (global indicators can be
-    # per-system, or all-systems)
-    global_indicators = {}
     dfs = []  # List of tuples (dataframe, True if Local else False)
     # For each ScalarIndicator...
     for si in indicators:
@@ -552,9 +751,9 @@ def calculate_scalar_indicators(indicators: List[Indicator],
                     dfs.append((dfi, True))
             except Exception as e:
                 traceback.print_exc()
-        elif si._indicator_category == IndicatorCategories.case_study:
+        elif si._indicator_category in (IndicatorCategories.case_study, IndicatorCategories.system):
             try:
-                dfi = calculate_global_scalar_indicator(si)
+                dfi = calculate_system_or_global_scalar_indicator(si)
                 if not dfi.empty:
                     dfs.append((dfi, False))
             except Exception as e:
@@ -563,15 +762,15 @@ def calculate_scalar_indicators(indicators: List[Indicator],
     # Restore index
     results.set_index(local_idx_to_change, append=True, inplace=True)
 
-    if len([df[0] for df in dfs if dfs[1]]) > 0:
-        local_df = pd.concat([df[0] for df in dfs if dfs[1]])
+    if len([df[0] for df in dfs if df[1]]) > 0:
+        local_df = pd.concat([df[0] for df in dfs if df[1]])
     else:
         local_df = pd.DataFrame()
 
-    if len([df[0] for df in dfs if not dfs[1]]) > 0:
+    if len([df[0] for df in dfs if not df[1]]) > 0:
         # Merge all the results
-        global_df = pd.concat([df[0] for df in dfs if not dfs[1]], axis=0, sort=False)
-        global_df.set_index(global_idx_names, inplace=True)
+        global_df = pd.concat([df[0] for df in dfs if not df[1]], axis=0, sort=False)
+        # global_df.set_index(global_idx_names, inplace=True)
     else:
         global_df = pd.DataFrame()
 
@@ -661,7 +860,7 @@ def calculate_global_benchmarks(df_global_indicators, indicators: List[Indicator
 
     ind_map = create_dictionary()
     for si in indicators:
-        if si._indicator_category == IndicatorCategories.case_study:
+        if si._indicator_category in (IndicatorCategories.case_study, IndicatorCategories.system):
             if len(si.benchmarks) > 0:
                 ind_map[si.name] = si
 
@@ -669,21 +868,23 @@ def calculate_global_benchmarks(df_global_indicators, indicators: List[Indicator
 
     new_df_rows_idx = []
     new_df_rows_data = []
-    indicator_column_idx = df_global_indicators.columns.get_loc("Indicator")
+    indicator_index_idx = df_global_indicators.index.names.index("Indicator")
     value_column_idx = df_global_indicators.columns.get_loc("Value")
     unit_column_idx = df_global_indicators.columns.get_loc("Unit")
-    for r in df_global_indicators.itertuples():
-        indic = r[1 + indicator_column_idx]
-        ind = ind_map[indic]
-        val = r[1 + value_column_idx]
-        unit = r[1 + unit_column_idx]
-        for b in ind.benchmarks:
-            c = get_benchmark_category(b, val)
-            if not c:
-                c = f"<out ({val})>"
+    indic_array = df_global_indicators.index.get_level_values(indicator_index_idx)
+    for i, r in enumerate(df_global_indicators.itertuples()):
+        indic = indic_array[i]
+        if indic in ind_map:
+            ind = ind_map[indic]
+            val = r[1 + value_column_idx]
+            unit = r[1 + unit_column_idx]
+            for b in ind.benchmarks:
+                c = get_benchmark_category(b, val)
+                if not c:
+                    c = f"<out ({val})>"
 
-            new_df_rows_idx.append(r[0])  # (scenario, period, scope, processor)
-            new_df_rows_data.append((indic, val, b.name, c))
+                new_df_rows_idx.append(r[0])  # (scenario, period, scope, processor)
+                new_df_rows_data.append((indic, val, b.name, c))
 
     # Construct pd.DataFrame with the result of the scalar indicator calculation
     df2 = pd.DataFrame(data=new_df_rows_data,
