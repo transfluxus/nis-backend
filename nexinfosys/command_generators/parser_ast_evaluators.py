@@ -494,14 +494,16 @@ def ast_evaluator(exp: Dict, state: State, obj, issue_lst, atomic_h_names=False,
                             kwargs[name] = state.get("_processors_map")
                         elif sp_kwarg == "DataFrameGroup":
                             kwargs[name] = state.get("_df_group")
-                        elif sp_kwarg == "IndicatorsDataFrameGroup":
-                            kwargs[name] = state.get("_df_indicators_group")
+                        elif sp_kwarg == "IndicatorDictionaries":
+                            kwargs[name] = state.get("_indicators_tmp")
                         elif sp_kwarg == "IndicatorState":
                             kwargs[name] = state
                         elif sp_kwarg == "LCIAMethods":
                             kwargs[name] = state.get("_lcia_methods")
                         elif sp_kwarg == "AccountNA":
                             kwargs[name] = account_nas_name
+                        elif sp_kwarg == "ProcessorNames":
+                            kwargs[name] = state.get("_processor_names")
 
                     # CALL FUNCTION!!
                     try:
