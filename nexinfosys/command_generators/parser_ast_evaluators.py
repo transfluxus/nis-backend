@@ -384,7 +384,7 @@ def ast_evaluator(exp: Dict, state: State, obj, issue_lst, atomic_h_names=False,
     :param issue_lst: List in which issues have to be annotated
     :param atomic_h_names: If True, treat variable names as atomic (False processes them part by part, from left to right). Used in dataset expansion
     :param allowed_functions: Set of allowed function names (and their definitions)
-    :param account_nas_name: If True, each evaluation at top level returns 4 results: the evaluation, number of variables,
+    :param account_nas_name: If != "", each evaluation at top level returns 4 results: the evaluation, number of variables,
                         number of not available and number of not applicable (i.e., like zero)
     :param nest_level: Recursive level of the function. Used to allow evaluation of addends when they are NotAvailable
     :return: value (scalar EXCEPT for named parameters, which return a tuple "parameter name - parameter value"), list of unresolved variables
@@ -444,22 +444,37 @@ def ast_evaluator(exp: Dict, state: State, obj, issue_lst, atomic_h_names=False,
             else:
                 ret_val = None
         elif t == "function":  # Call function
-            # First, obtain the Parameters
-            args = []
-            kwargs = {}
-            can_resolve = True
-            for p in [ast_evaluator(p, state, obj, issue_lst, atomic_h_names, allowed_functions,
-                                    account_nas_name=account_nas_name, nest_level=nest_level + 1) for p in
-                      exp["params"]]:
-                if len(p) == 3:
-                    kwargs[p[0]] = p[1]
-                    tmp = p[2]
+            # If it is a function (not a method), is it a valid function, is it an aggregator function?
+            if obj is None:
+                if exp["name"] in allowed_functions:
+                    _f = allowed_functions[exp["name"]]
+                    aggregate = _f.get("aggregate", False)
                 else:
-                    args.append(p[0])
-                    tmp = p[1]
-                involved_vars.update(tmp)
-                if len(tmp) > 0:
-                    can_resolve = False
+                    aggregate = False
+                    issue_lst.append((3, "Function '" + exp["name"] + "' does not exist"))
+
+            # First, obtain the Parameters
+            args = []  # List of unnamed parameters
+            kwargs = {}  # List of named parameters
+            can_resolve = True
+            for i, p in enumerate(exp["params"]):
+                # If it is an aggregator function, first parameter not evaluated, evaluated by the aggregator function
+                if aggregate and i == 0:
+                    # First parameter is not evaluated, the AST is just passed to the aggregator function,
+                    # which will evaluate it for every matching processor (per scenario, period)
+                    args.append(p)
+                else:
+                    q = ast_evaluator(p, state, obj, issue_lst, atomic_h_names, allowed_functions,
+                                      account_nas_name=account_nas_name, nest_level=nest_level + 1)
+                    if len(q) == 3:  # Named parameter
+                        kwargs[q[0]] = q[1]
+                        tmp = q[2]
+                    else:  # Parameter
+                        args.append(q[0])
+                        tmp = q[1]
+                    involved_vars.update(tmp)
+                    if len(tmp) > 0:
+                        can_resolve = False
 
             if obj is None:
                 # Check if it can be resolved (all variables specified)
@@ -524,7 +539,7 @@ def ast_evaluator(exp: Dict, state: State, obj, issue_lst, atomic_h_names=False,
                             else:
                                 involved_vars[o] = "NAp"
                             if account_nas_name:
-                                obj = 0  # If not defined, the value is zero
+                                obj = 0  # If not defined, the value is zero (NAs is for Sums; for Products it would probably be 1...)
                         else:  # Value defined, check if it is a NAv (NaN)
                             if isinstance(obj, (float, int)):  # AccountNAs is valid only for float's
                                 if math.isnan(obj):
