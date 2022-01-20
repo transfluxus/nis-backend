@@ -214,32 +214,36 @@ def write_results(state_or_nis: Union[State, NIS], output_dir: str, datasets: Li
         nis = state_or_nis
 
     # Convert to required format
-    datasets = datasets.split(",") if datasets.strip() != "" else []
-    _ = []
-    for ds in datasets:
-        tmp = ds.strip().split(".")
-        if len(tmp) == 3:
-            _.append([tmp[0], tmp[1]+"."+tmp[2]])
-        elif len(tmp) == 2:
-            _.append([None, tmp[0] + "." + tmp[1]])
-        else:
-            print(f"Could not parse dataset request entry: {ds}")
-    tmp = nis.get_results(_)
-    any_error = False
-    for i, ds in enumerate(tmp):
-        name = datasets[i]
-        if ds[2]:
-            if isinstance(ds[0], StringIO):
-                val = ds[0].getvalue()
+    if datasets:
+        datasets = datasets.split(",") if datasets.strip() != "" else []
+        _ = []
+        for ds in datasets:
+            tmp = ds.strip().split(".")
+            if len(tmp) == 3:
+                _.append([tmp[0], tmp[1]+"."+tmp[2]])
+            elif len(tmp) == 2:
+                _.append([None, tmp[0] + "." + tmp[1]])
             else:
-                val = ds[0]
-            flag = "b" if not isinstance(ds[0], StringIO) and not isinstance(ds[0], str) else "t"
-            print(f"Writing {name} to: {output_dir}{os.sep}{name}")
-            with open(f"{output_dir}{os.sep}{name}", f"w{flag}") as f:
-                f.write(val)
-        else:
-            any_error = True
-            print(f"Could not retrieve dataset: {name}")
+                print(f"Could not parse dataset request entry: {ds}")
+        tmp = nis.get_results(_)
+        any_error = False
+        for i, ds in enumerate(tmp):
+            name = datasets[i]
+            if ds[2]:
+                if isinstance(ds[0], StringIO):
+                    val = ds[0].getvalue()
+                else:
+                    val = ds[0]
+                flag = "b" if not isinstance(ds[0], StringIO) and not isinstance(ds[0], str) else "t"
+                print(f"Writing {name} to: {output_dir}{os.sep}{name}")
+                with open(f"{output_dir}{os.sep}{name}", f"w{flag}") as f:
+                    f.write(val)
+            else:
+                any_error = True
+                print(f"Could not retrieve dataset: {name}")
+    else:
+        any_error = True
+        tmp = []
     if any_error or len(tmp) == 0:
         print("Reference of available datasets: --------")
         lst = nis.query_available_datasets()
