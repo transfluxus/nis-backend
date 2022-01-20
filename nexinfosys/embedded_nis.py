@@ -328,7 +328,7 @@ class NIS:
                          ] + \
                         [dict(name="processors_geolayer",
                               type="geolayer",
-                              description="Processors located in a geographic layer",
+                              description="Processors, located in a geographic layer",
                               formats=[
                                   dict(format=f, url=F"geolayer.{f.lower()}")
                                   for f in geo_formats]),
