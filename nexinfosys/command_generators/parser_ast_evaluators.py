@@ -8,11 +8,13 @@ https://gist.github.com/cynici/5865326
 import importlib
 import math
 import re
+import traceback
 from typing import Dict, Tuple, Union, List
 
 import lxml
 import numpy as np
 import pandas as pd
+from lxml import etree
 
 from nexinfosys import case_sensitive
 from nexinfosys.command_generators import global_functions, IType, Issue, IssueLocation, parser_field_parsers
@@ -210,10 +212,35 @@ def lcia_method(indicator: str, method: str = None, horizon: str = None, compart
     return res
 
 
+def starts_with(context, *args):
+    """
+
+    :return:
+    """
+    return args[0].startswith(args[1])
+
+
+def lower_case(context, text):
+    """
+
+    :param text:
+    :return:
+    """
+    if isinstance(text, list):
+        return [x.lower() for x in text]
+    elif isinstance(text, str):
+        return text.lower()
+    else:
+        return text
+
+
 def obtain_processors(xquery: str = None, processors_dom=None, processors_map=None):
     if xquery:
         try:
             processors = set()
+            ns = etree.FunctionNamespace(None)
+            ns["starts-with"] = starts_with
+            ns["lower-case"] = lower_case
             r = processors_dom.xpath(xquery if case_sensitive else xquery.lower())
             for e in r:
                 fname = e.get("fullname")
@@ -223,9 +250,9 @@ def obtain_processors(xquery: str = None, processors_dom=None, processors_map=No
                     pass  # Interfaces...
             return processors
         except lxml.etree.XPathEvalError:
+            traceback.print_exc()
             # TODO Try CSSSelector syntax
             # TODO Generate Issue
-            pass
     else:
         # ALL
         # TODO Probably this should not be used because it will normally imply double accounting
