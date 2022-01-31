@@ -333,7 +333,7 @@ class NIS:
                                   dict(format=f, url=F"geolayer.{f.lower()}")
                                   for f in geo_formats]),
                          ] + \
-                        [dict(name="Model",
+                        [dict(name="model",
                               type="model",
                               description="Model",
                               formats=[
