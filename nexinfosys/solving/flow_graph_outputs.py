@@ -349,7 +349,7 @@ def prepare_state(indicators_, system_indicators, global_indicators, scenario_pa
 
 def select_processor_by_name(processor_names, processor_name: str) -> bool:
     """ Used to decide which processors are included in calculations of indicators """
-    if processor_names is None or len(processor_names) == 0:
+    if processor_names is None:
         return True
     else:
         return processor_name in processor_names
@@ -391,11 +391,17 @@ def aggregate_generic(funct,
     if processors_selector:
         inv_map = {v: k for k, v in p_map.items()}
         processors = obtain_processors(processors_selector, serialized_model, p_map)
-        processor_names_ = set([inv_map[p] for p in processors])
+        if processors:
+            processor_names_ = set([inv_map[p] for p in processors])
+        else:
+            processor_names_ = None
     else:
-        processor_names_ = set()
-    if processor_names:
-        processor_names_.intersection_update(processor_names)
+        processor_names_ = None
+    if processor_names is not None:
+        if processor_names_ is not None:
+            processor_names_.intersection_update(processor_names)
+        else:
+            processor_names_ = processor_names
 
     issues = []
     values = {}
@@ -403,7 +409,7 @@ def aggregate_generic(funct,
         processor_name = t_
 
         # Check if it is wanted to calculate the indicator for the processor
-        if not select_processor_by_name(processor_names, processor_name):
+        if not select_processor_by_name(processor_names_, processor_name):
             continue
         d, proc = prepare_state(indicators_dict, system_indicators, global_indicators, scenario_params,
                                 registry,
@@ -570,9 +576,12 @@ def calculate_scalar_indicators(indicators: List[Indicator],
         if indicator.processors_selector:
             inv_map = {v: k for k, v in p_map.items()}
             processors = obtain_processors(indicator.processors_selector, serialized_model, p_map)
-            processor_names = set([inv_map[p] for p in processors])
+            if processors:
+                processor_names = set([inv_map[p] for p in processors])
+            else:
+                processor_names = None
         else:
-            processor_names = set()
+            processor_names = None
 
         issues = []
         new_df_rows_idx = []
@@ -650,7 +659,10 @@ def calculate_scalar_indicators(indicators: List[Indicator],
         if indicator.processors_selector:
             inv_map = {v: k for k, v in p_map.items()}
             processors = obtain_processors(indicator.processors_selector, serialized_model, p_map)
-            processor_names = set([inv_map[p] for p in processors])
+            if processors:
+                processor_names = set([inv_map[p] for p in processors])
+            else:
+                processor_names = None
         else:
             processor_names = None
 
