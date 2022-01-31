@@ -4,6 +4,7 @@ Inputs are both the registry and the output dataframe
 The registry serves to prepare the structure of the file
 
 """
+import textwrap
 from typing import Dict, Tuple
 
 from nexinfosys import case_sensitive
@@ -37,7 +38,7 @@ def export_model_to_xml(registry: PartialRetrievalDictionary) -> Tuple[str, Dict
     :return:
     """
 
-    def xml_processor(p: Processor, registry: PartialRetrievalDictionary, p_map: Dict[str, Processor]):
+    def xml_processor(p: Processor, registry: PartialRetrievalDictionary, p_map: Dict[str, Processor], level=0):
         """
         Return the XML of a processor
         Recursive into children
@@ -49,10 +50,11 @@ def export_model_to_xml(registry: PartialRetrievalDictionary) -> Tuple[str, Dict
         def xml_interface(iface: Factor):
             """
 
+            :param level:
             :param iface:
             :return:
             """
-            s = f'<{iface.name} type="{iface.taxon.name}" sphere="{iface.sphere}" ' \
+            s = f'<interface name="{iface.name}" type="{iface.taxon.name}" sphere="{iface.sphere}" ' \
                 f'roegen_type="{iface.roegen_type}" orientation="{iface.orientation}" ' \
                 f'opposite_processor_type="{iface.opposite_processor_type}" />'
             if case_sensitive:
@@ -68,12 +70,13 @@ def export_model_to_xml(registry: PartialRetrievalDictionary) -> Tuple[str, Dict
             p_map[full_name.lower()] = p
 
         s = f"""
-    <{p.name} fullname="{full_name}" level="{p.level}" system="{p.processor_system}" subsystem="{p.subsystem_type}" functional="{"true" if strcmp(p.functional_or_structural, "Functional") else "false"}" >
-        <interfaces>
-        {chr(10).join([xml_interface(f) for f in p.factors])}
-        </interfaces>
-        {chr(10).join([xml_processor(c, registry, p_map) for c in children])}    
-    </{p.name}>"""
+<processor name="{p.name}" fullname="{full_name}" level="{p.level}" system="{p.processor_system}" subsystem="{p.subsystem_type}" functional="{"true" if strcmp(p.functional_or_structural, "Functional") else "false"}" >
+  <interfaces>
+{textwrap.indent(chr(10).join([xml_interface(f) for f in p.factors]), "    ")}
+  </interfaces>
+  {chr(10).join([xml_processor(c, registry, p_map, level + 1) for c in children])}    
+</processor>"""
+        s = textwrap.indent(s, "  "*(level+1))
         if case_sensitive:
             return s
         else:
