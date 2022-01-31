@@ -73,14 +73,14 @@ def get_results_in_session(isess: "InteractiveSession"):
                                dict(format=f, url=nis_api_base + F"/isession/rsession/state_query/geolayer.{f.lower()}")
                                for f in geo_formats]),
                       ] +
-                     [dict(name="Model",
+                     [dict(name="model",
                            type="model",
                            description="Model",
                            formats=[
                                dict(format=f, url=nis_api_base + F"/isession/rsession/state_query/model.{f.lower()}")
                                for f in ["JSON", "XLSX", "XML"]]),
                       ] +
-                     [dict(name="Ontology",
+                     [dict(name="ontology",
                            type="ontology",
                            description="OWL ontology",
                            formats=[
