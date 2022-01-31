@@ -429,7 +429,7 @@ command_fields: Dict[str, List[CommandField]] = {
         # IndicatorType (Indicators)
         CommandField(allowed_names=["Indicator"], name="indicator_name", mandatory=True, parser=simple_ident),
         # IndicatorName (Indicators)
-        CommandField(allowed_names=["Type", "Local"], name="local", mandatory=True, allowed_values=scalar_indicator_type,
+        CommandField(allowed_names=["Scope", "Local"], name="local", mandatory=True, allowed_values=scalar_indicator_type,
                      parser=simple_ident),
         CommandField(allowed_names=["Processors"], name="processors_selector", parser=processors_selector_expression),
         CommandField(allowed_names=["Formula", "Expression"], name="formula", mandatory=True,
