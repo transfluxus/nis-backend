@@ -113,26 +113,6 @@ string = quotedString.setParseAction(
 
 
 # RULES - XQuery/XPath string - used in aggregator expressions potentially involving several processors
-# -- NOT USED --
-def xquery_validation(s, l, tt):
-    """
-    Function to elaborate a node for evaluation of processor name (definition of processor name) or
-    selection of processors, with variable names and wildcard (..)
-    :param s:
-    :param l:
-    :param tt:
-    :return:
-    """
-    try:
-        lxml.etree.XPath(s)
-        return {"type": "XQueryString", "query": s}
-    except lxml.etree.XPathSyntaxError:
-        # TODO Check if it is CSS syntax
-        raise Exception("Syntax error validating XQuery/XPath expression")
-
-
-xpath_string = (Literal("q") + quoted_string).setParseAction(xquery_validation)
-
 
 # RULES - Processor field string - Name of one Interface, Indicator or Attribute in a Processor
 def processor_field_string(s, l, tt):
