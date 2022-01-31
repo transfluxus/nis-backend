@@ -203,7 +203,7 @@ def print_issues(operation, file, issues: List[Issue], msg_in_case_of_error: str
     else:
         print(
             f"File '{file}' was already cached, meaning no change and no errors detected. "
-            f"Please, add --force_refresh=True to force reprocessing.")
+            f"Please, add --force-refresh to force reprocessing.")
 
 
 def write_results(state_or_nis: Union[State, NIS], output_dir: str, datasets: List[str]):
@@ -228,7 +228,7 @@ def write_results(state_or_nis: Union[State, NIS], output_dir: str, datasets: Li
         tmp = nis.get_results(_)
         any_error = False
         for i, ds in enumerate(tmp):
-            name = datasets[i]
+            name = datasets[i].strip()
             if ds[2]:
                 if isinstance(ds[0], StringIO):
                     val = ds[0].getvalue()
