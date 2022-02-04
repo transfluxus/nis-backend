@@ -216,7 +216,7 @@ class NIS:
         # A reproducible session must be open
         if self._isession:
             try:
-                # SOLVE !!!!
+                # SOLVE !!!!!
                 if not any_error_issue(self._issues):
                     issues2 = prepare_and_solve_model(self._isession.state)
                     self._issues.extend(issues2)
