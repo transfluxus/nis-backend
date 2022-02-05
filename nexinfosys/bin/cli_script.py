@@ -369,6 +369,15 @@ nexinfosys solve https://docs.google.com/spreadsheets/d/1C5xNGvdORWqrWL6Ux2nBXMd
                 issues = nis.recalculate(params)
                 write_results(nis, work_path, datasets)
 
+    def backend(self):
+        from nexinfosys.restful_service import app
+        import nexinfosys.restful_service.service_main
+        app.run(host='0.0.0.0',
+                debug=True,
+                use_reloader=False,  # Avoid loading twice the application
+                processes=1,
+                threaded=False)  # Default port, 5000
+
 
 def main():
     os.environ["PAGER"] = "cat" if platform.system().lower() != "windows" else "-"
