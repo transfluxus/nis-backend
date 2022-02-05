@@ -7,6 +7,7 @@ import itertools
 import json
 import logging
 import mimetypes
+import os
 import re
 import tempfile
 import urllib
@@ -1250,9 +1251,21 @@ def download_file(location, wv_user=None, wv_password=None, wv_host_name=None):
             #     data = io.BytesIO(resp.content)
                 pass
             else:
+                # Disabled remote file could not be accessed due to permissions, please check them
                 credentials_file = get_global_configuration_variable("GAPI_CREDENTIALS_FILE")
                 token_file = get_global_configuration_variable("GAPI_TOKEN_FILE")
-                data = download_xlsx_file_id(credentials_file, token_file, file_id)
+                if os.path.exists(credentials_file) and os.path.exists(token_file):
+                    try:
+                        data = download_xlsx_file_id(credentials_file, token_file, file_id)
+                    except:
+                        print(f"Google Drive file download failed, please check credentials "
+                              f"files: {credentials_file} and {token_file}")
+                        data = None
+                else:
+                    print("Google Drive file download not possible, please check permissions, "
+                          "it should be public (can be read only)")
+                    data = None
+
             # with open("/home/rnebot/Downloads/out2.xlsx", "wb") as nf:
             #     nf.write(data.getvalue())
         else:

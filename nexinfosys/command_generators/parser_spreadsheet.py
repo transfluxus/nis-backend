@@ -31,7 +31,9 @@ def handle_import_commands(r):
 
         if location:
             # Try to load the Dataset from the specified location
-            data = download_file(location).getvalue()
+            data = download_file(location)
+            if data:
+                data = data.getvalue()
             # data = urllib.request.urlopen(location).read()
             # data = io.BytesIO(data)
             # Then, try to read it
@@ -156,7 +158,14 @@ def commands_generator_from_ooxml_file(input, state, sublist, stack, ignore_impo
                     # For each line, repeat the import
                     for r in c_content["items"]:
                         generator_type, file2, sublist2 = handle_import_commands(r)
-                        yield from commands_container_parser_factory(generator_type, None, file2, state, sublist=sublist2, stack=stack)
+                        if file2 is not None:
+                            yield from commands_container_parser_factory(generator_type, None, file2, state, sublist=sublist2, stack=stack)
+                        else:
+                            url = r.get("workbook_name", None)
+                            total_issues.append(
+                                Issue(sheet_number, sheet_name, None, IType.ERROR,
+                                      f"Import command failed probably because the file at {url} could not be "
+                                      f"accessed or located (please, check permissions or correct URL)"))
                         logging.debug("IMPORT_COMMANDS done")
             else:
                 c_type = None
