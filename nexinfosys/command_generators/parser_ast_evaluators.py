@@ -222,6 +222,9 @@ def lcia_method(method: str, category: str, indicator: str,
         ind = np.sum(np.multiply(interfaces, weights))  # * ureg(indicator_unit)
         res[name] = ind
 
+    if sum_if_multiple:
+        res = sum(res.values())
+
     return res
 
 
