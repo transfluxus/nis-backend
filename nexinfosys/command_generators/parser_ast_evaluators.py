@@ -122,10 +122,13 @@ def call_udif_function(function_name, state: State = None):
 lcia_methods = None  # type: PartialRetrievalDictionary
 
 
-def lcia_method(indicator: str, method: str = None, horizon: str = None, compartment: str = None,
-                subcompartment: str = None, category: str = None,
+def lcia_method(method: str, category: str, indicator: str,
+                compartment: str = None,
+                subcompartment: str = None,
+                horizon: str = None, sum_if_multiple: bool = True,
                 state: State = None, lcia_methods_dict: Dict = None):
     """
+    Calculate the LCIA method indicator
 
     :param indicator: Indicator name
     :param method: LCIA method weighting
@@ -137,28 +140,38 @@ def lcia_method(indicator: str, method: str = None, horizon: str = None, compart
     :return: A dictionary with the indicators and calculated values
     """
     global lcia_methods
-    if not lcia_methods:
+    if not lcia_methods and lcia_methods_dict:
         lcia_methods = PartialRetrievalDictionary()
         from random import random
         for k, v in lcia_methods_dict.items():
+            # [0] m=Method,
+            # [1] t=caTegory,
+            # [2] d=inDicator,
+            # [3] h=Horizon,
+            # [4] i=Interface,
+            # [5] c=Compartment,
+            # [6] s=Subcompartment,
             _ = dict(m=k[0], t=k[1], d=k[2], h=k[3], i=k[4], c=k[5], s=k[6])
             # NOTE: a random() is generated just to grant that the tuple is unique
             lcia_methods.put(_, (v[0], v[1], v[2], random()))
 
-    if indicator is None or indicator.strip() == "":
+    if lcia_methods is None or \
+            indicator is None or indicator.strip() == "" or \
+            method is None or method.strip() == "" or \
+            category is None or category.strip() == "":
         return None
 
     k = dict(d=indicator)
     if method:
         k["m"] = method
+    if category:
+        k["t"] = category
     if horizon:
         k["h"] = horizon
     if compartment:
         k["c"] = compartment
     if subcompartment:
         k["s"] = subcompartment
-    if category:
-        k["t"] = category
 
     ms = lcia_methods.get(key=k, key_and_value=True)
     indices = create_dictionary()
