@@ -4,7 +4,7 @@
 # nis-backend
 > A <a href="https://en.wikipedia.org/wiki/MuSIASEM">MuSIASEM</a> instance
 
-NIS (Nexus Information System) is a software system being developed inside MAGIC project (<a href="https://cordis.europa.eu/project/id/689669">H2020 grant #689669</a>). 
+NIS (Nexus Information System) is a software system developed initially under the framework of MAGIC project (<a href="https://cordis.europa.eu/project/id/689669">H2020 grant #689669</a>). 
 
 NIS enables accounting the biophysical flows in complex bioeconomic systems according to MuSIASEM concepts and methodology, as a way to assess the sustainability of current -or future- scenarios in socio-ecologic systems.
 
