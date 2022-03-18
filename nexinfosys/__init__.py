@@ -37,7 +37,7 @@ ureg.define("square_meter = m^2 = m2")
 ureg.define("euro = [] = EUR = Eur = eur = Euro = Euros = €")
 ureg.define("dollar = [] = USD = Usd = usd = Dollar = Dollars = $")
 ureg.define("capita = []")
-ureg.define("dimensionless = []")
+ureg.define("dimensionless = [] = adimensional")
 ureg.define('fraction = [] = frac')
 ureg.define('percent = 1e-2 frac = pct')
 

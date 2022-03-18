@@ -28,7 +28,7 @@ Before the elaboration of flow graphs, several preparatory steps:
 import logging
 import traceback
 from collections import defaultdict
-from copy import deepcopy
+from copy import deepcopy, copy
 from enum import Enum
 from typing import Dict, List, Set, Any, Tuple, Union, Optional, NamedTuple, Generator, NoReturn, Sequence
 
@@ -494,7 +494,7 @@ def resolve_observations_with_parameters(state: State, observations: Observation
                 continue
 
         if interface_params:
-            new_obs = deepcopy(obs)
+            new_obs = copy(obs)  # deepcopy(obs) ?
             if obs_new_value is not None:
                 new_obs.value = obs_new_value
             unresolved_observations_with_interfaces[node] = (ast, new_obs)
