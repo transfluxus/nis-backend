@@ -33,6 +33,7 @@ from enum import Enum
 from typing import Dict, List, Set, Any, Tuple, Union, Optional, NamedTuple, Generator, NoReturn, Sequence
 
 import networkx as nx
+from nexinfosys.command_generators.parser_ast_evaluators import ast_evaluator
 
 from nexinfosys.command_field_definitions import orientations
 from nexinfosys.command_generators import Issue
@@ -40,7 +41,7 @@ from nexinfosys.command_generators.parser_field_parsers import is_year, \
     is_month, parse_string_as_simple_ident_list
 from nexinfosys.common.constants import Scope
 from nexinfosys.common.helper import PartialRetrievalDictionary, ifnull, FloatExp, precedes_in_list, \
-    replace_string_from_dictionary, brackets
+    replace_string_from_dictionary, brackets, CaseInsensitiveDict, create_dictionary
 from nexinfosys.model_services import get_case_study_registry_objects, State
 from nexinfosys.models.musiasem_concepts import ProblemStatement, Parameter, FactorsRelationDirectedFlowObservation, \
     FactorsRelationScaleObservation, Processor, FactorQuantitativeObservation, Factor, \
@@ -410,7 +411,7 @@ def create_scale_change_relations_and_update_flow_relations(relations_flow: nx.D
 
 def convert_params_to_extended_interface_names(params: Set[str], obs: FactorQuantitativeObservation, registry) \
         -> Tuple[Dict[str, str], List[str], List[str]]:
-    extended_interface_names: Dict[str, str] = {}
+    extended_interface_names: Dict[str, str] = create_dictionary()
     unresolved_params: List[str] = []
     issues: List[str] = []
 
@@ -443,16 +444,45 @@ def replace_ast_variable_parts(ast: AstType, variable_conversion: Dict[str, str]
     return new_ast
 
 
-def resolve_observations_with_parameters(state: State, observations: ObservationListType,
-                                         observers_priority_list: Optional[List[str]], registry) \
+def resolve_observations_with_only_values_and_parameters(parameters: CaseInsensitiveDict,
+                                                         state: State, observations: ObservationListType,
+                                                         observers_priority_list: Optional[List[str]], registry) \
         -> Tuple[NodeFloatComputedDict, InterfaceNodeAstDict]:
     resolved_observations: NodeFloatComputedDict = {}
     unresolved_observations_with_interfaces: InterfaceNodeAstDict = {}
 
+    p_set = set([k.lower() for k in parameters.keys()])
     for expression, obs in observations:
         interface_params: Dict[str, str] = {}
         obs_new_value: Optional[str] = None
         value, ast, params, issues = evaluate_numeric_expression_with_parameters(expression, state)
+        # If it is an expression (not a literal value), if there is an interface with same name as a parameter, assume
+        # the interface, but if there is not one, take the parameter value
+        if isinstance(expression, dict):
+            # Parameter?  Interface?  Interface with Value?  BEHAVIOR
+            # ----------  ----------  ---------------------  --------
+            # Yes         Yes          Yes                   Interface value has precedence over parameter value <- NEW!
+            # Yes         Yes          No                    Interface has precedence, but error because value is None
+            # Yes         No           Yes                   NOT POSSIBLE
+            # Yes         No           No                    Parameter value taken
+            # No          Yes          Yes                   Interface value taken
+            # No          Yes          No                    Interface defined, but error because value is None
+            # No          No           Yes                   NOT POSSIBLE
+            # No          No           No                    Total disaster!
+
+            _, p = ast_evaluator(expression, State(), None, issues)
+            p = set([p_.lower() for p_ in p]).intersection(p_set)
+            if len(p) > 0:
+                params = set()
+                for p_ in p:
+                    interfaces: Sequence[Factor] = registry.get(
+                        Factor.partial_key(processor=obs.factor.processor, name=p_))
+                    if len(interfaces) == 1:
+                        # print(f"Assuming interface '{p_}' for observation '{expression}'")
+                        params.add(p_)
+                        value = None
+                        ast = expression
+
         if value is None:
             interface_params, params, issues = convert_params_to_extended_interface_names(params, obs, registry)
             if interface_params and not issues:
@@ -476,13 +506,14 @@ def resolve_observations_with_parameters(state: State, observations: Observation
         # Create node from the interface
         node = InterfaceNode(obs.factor)
 
-        if node in resolved_observations or node in unresolved_observations_with_interfaces:
+        if node in resolved_observations or \
+                node in unresolved_observations_with_interfaces:
             previous_observer_name: str = resolved_observations[node].observer \
                 if node in resolved_observations else unresolved_observations_with_interfaces[node][1].observer.name
 
             if observer_name is None and previous_observer_name is None:
                 raise SolvingException(
-                    f"Multiple observations exist for the 'same interface '{node.name}' without a specified observer."
+                    f"Multiple observations exist for the same interface '{node.name}' without a specified observer."
                 )
             elif not observers_priority_list:
                 raise SolvingException(
@@ -490,7 +521,7 @@ def resolve_observations_with_parameters(state: State, observations: Observation
                     f"has not been (correctly) defined: {observers_priority_list}"
                 )
             elif not precedes_in_list(observers_priority_list, observer_name, previous_observer_name):
-                # Ignore this observation because a higher priority observations has previously been set
+                # Ignore this observation because a higher priority observation has previously been set
                 continue
 
         if interface_params:
@@ -988,9 +1019,8 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
 
         for scenario_name, scenario_params in problem_statement.scenarios.items():  # type: str, Dict[str, Any]
             logging.debug(f"********************* SCENARIO: {scenario_name}")
-
-            scenario_state = State(evaluate_parameters_for_scenario(global_parameters, scenario_params))
-
+            params = evaluate_parameters_for_scenario(global_parameters, scenario_params)
+            scenario_state = State(params)
             scenario_partof_weights = resolve_partof_weight_expressions(partof_weights, scenario_state,
                                                                         raise_error=True)
 
@@ -1024,8 +1054,8 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
 
                     # Get final results from the absolute observations
                     results, unresolved_observations_with_interfaces = \
-                        resolve_observations_with_parameters(scenario_state, absolute_observations,
-                                                             observers_priority_list, glb_idx)
+                        resolve_observations_with_only_values_and_parameters(params, scenario_state, absolute_observations,
+                                                                             observers_priority_list, glb_idx)
 
                     # Initializations
                     iteration_number = 1

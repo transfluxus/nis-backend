@@ -1539,7 +1539,10 @@ def replace_string_from_dictionary(s: str, d: Dict[str, str]) -> str:
     """
     for k, v in sorted(d.items(), key=lambda item: len(item[1])):
         logging.debug(v)
-        s = re.sub(r"\b" + k + r"\b", v, s)
+        if case_sensitive:
+            s = re.sub(r"\b" + k + r"\b", v, s)
+        else:
+            s = re.sub(r"\b" + k + r"\b", v, s, flags=re.IGNORECASE)
     return s
 
 # #####################################################################################################################
