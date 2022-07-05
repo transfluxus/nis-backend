@@ -23,7 +23,7 @@ __version__ = '11.7.17'
 # of the parsed tokens.
 
 from pyparsing import Word, nums, alphas, Combine, oneOf, Optional, \
-    opAssoc, operatorPrecedence
+    opAssoc, infixNotation
 
 
 class EvalConstant():
@@ -128,7 +128,7 @@ class EvalComparisonOp():
         return False
 
 
-class Arith():
+class Arith:
     # define the parser
     integer = Word(nums)
     real = (Combine(Word(nums) + Optional("." + Word(nums))
@@ -146,7 +146,7 @@ class Arith():
 
     # use parse actions to attach EvalXXX constructors to sub-expressions
     operand.setParseAction(EvalConstant)
-    arith_expr = operatorPrecedence(operand,
+    arith_expr = infixNotation(operand,
                                     [(signop, 1, opAssoc.RIGHT, EvalSignOp),
                                      (multop, 2, opAssoc.LEFT, EvalMultOp),
                                      (plusop, 2, opAssoc.LEFT, EvalAddOp),
@@ -159,7 +159,7 @@ class Arith():
     def setvars(self, vars_):
         self.vars_ = vars_
 
-    def setvar(var, val):
+    def setvar(self, var, val):
         self.vars_[var] = val
 
     def eval(self, strExpr):

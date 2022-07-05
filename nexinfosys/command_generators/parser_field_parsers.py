@@ -13,7 +13,7 @@ import lxml
 import pyparsing
 import typing
 from pyparsing import (ParserElement, Regex,
-                       oneOf, srange, operatorPrecedence, opAssoc,
+                       oneOf, srange, infixNotation, ParseResults, opAssoc,
                        Forward, Regex, Suppress, Literal, Word,
                        Optional, OneOrMore, ZeroOrMore, Or, alphas, alphanums, White,
                        Combine, Group, delimitedList, nums, quotedString, NotAny,
@@ -188,7 +188,11 @@ def parse_action_processor_name(s, l, tt, node_type="processor_name"):
     parts = []
     expandable = False
     for t in tt:
-        st = eval(repr(t))  # Inefficient??
+        _ = repr(t)
+        if _.startswith("ParseResults"):
+            _ = _[12:]
+        st = eval(_)  # Inefficient??
+
         if st == ".":
             parts.append(("separator", st))
             continue
@@ -364,7 +368,7 @@ h_name = (Optional(namespace).setResultsName("namespace") +
                            )
 
 # RULES - Arithmetic expression AND Arithmetic Plus Boolean expression
-arith_expression << operatorPrecedence(Or([positive_float, positive_int, string, code_string_reference,
+arith_expression << infixNotation(Or([positive_float, positive_int, string, code_string_reference,
                                        simple_h_name,
                                        func_call]),  # Operand types (REMOVED h_name: no "namespace" and no "datasets")
                                  [(signop, 1, opAssoc.RIGHT, lambda _s, l, t: {
@@ -392,7 +396,7 @@ arith_expression << operatorPrecedence(Or([positive_float, positive_int, string,
                                  rpar=rparen.suppress())
 
 # "The" expression, the most complex rule of this file
-arith_boolean_expression << operatorPrecedence(Or([positive_float, positive_int,
+arith_boolean_expression << infixNotation(Or([positive_float, positive_int,
                                                    string, boolean, code_string_reference,
                                                    bracketed_reference,
                                                    conditions_list,
@@ -455,7 +459,7 @@ conditions_list << Group(conditions_opening.suppress() + delimitedList(condition
                                                                })
 
 # RULES - Expression type 2
-expression << operatorPrecedence(Or([positive_float, positive_int, string, h_name]),  # Operand types
+expression << infixNotation(Or([positive_float, positive_int, string, h_name]),  # Operand types
                                  [(signop, 1, opAssoc.RIGHT, lambda _s, l, t: {'type': 'u'+t.asList()[0][0], 'terms': [0, t.asList()[0][1]], 'ops': ['u'+t.asList()[0][0]]}),
                                   (expop, 2, opAssoc.LEFT, lambda _s, l, t: { 'type': 'exponentials', 'terms': t.asList()[0][0::2], 'ops': t.asList()[0][1::2]}),
                                   (multop, 2, opAssoc.LEFT, lambda _s, l, t: {'type': 'multipliers', 'terms': t.asList()[0][0::2], 'ops': t.asList()[0][1::2]}),
@@ -471,7 +475,7 @@ simple_h_name_1 = Group(simple_ident)\
                                       }
                     )
 
-arith_boolean_expression_with_less_tokens << operatorPrecedence(Or([positive_float,
+arith_boolean_expression_with_less_tokens << infixNotation(Or([positive_float,
                                                                     positive_int,
                                                                     boolean,
                                                                     string,
@@ -536,7 +540,7 @@ expression_with_parameters = arith_boolean_expression
 expression_with_parameters_or_list_simple_ident = Or([arith_boolean_expression, list_simple_ident])
 
 # RULES: Expression type 3. For hierarchies. Can mention only simple identifiers (codes) and numbers
-hierarchy_expression << operatorPrecedence(Or([positive_float, positive_int, simple_ident]),  # Operand types
+hierarchy_expression << infixNotation(Or([positive_float, positive_int, simple_ident]),  # Operand types
                                            [(signop, 1, opAssoc.RIGHT, lambda _s, l, t: {'type': 'u'+t.asList()[0][0], 'terms': [0, t.asList()[0][1]], 'ops': ['u'+t.asList()[0][0]]}),
                                             (expop, 2, opAssoc.LEFT, lambda _s, l, t: {'type': 'exponentials', 'terms': t.asList()[0][0::2], 'ops': t.asList()[0][1::2]}),
                                             (multop, 2, opAssoc.LEFT, lambda _s, l, t: {'type': 'multipliers', 'terms': t.asList()[0][0::2], 'ops': t.asList()[0][1::2]}),
@@ -547,7 +551,7 @@ hierarchy_expression << operatorPrecedence(Or([positive_float, positive_int, sim
                                            rpar=rparen.suppress())
 
 # RULES: Expression type 4. For indicators. Can mention only numbers and core concepts
-indicator_expression << operatorPrecedence(Or([positive_float, positive_int,
+indicator_expression << infixNotation(Or([positive_float, positive_int,
                                                string, boolean,
                                                conditions_list,
                                                simple_h_name,
@@ -614,7 +618,7 @@ relation_expression = (Optional(arith_expression).setResultsName("weight") +
                                         )
 
 # RULES: Expression type 5. For hierarchies (version 2). Can mention code_string (for codes), parameters and numbers
-hierarchy_expression_v2 << operatorPrecedence(Or([positive_float, positive_int, code_string, named_parameter]),  # Operand types
+hierarchy_expression_v2 << infixNotation(Or([positive_float, positive_int, code_string, named_parameter]),  # Operand types
                                               [(signop, 1, opAssoc.RIGHT, lambda _s, l, t: {'type': 'u'+t.asList()[0][0], 'terms': [0, t.asList()[0][1]], 'ops': ['u'+t.asList()[0][0]]}),
                                             (multop, 2, opAssoc.LEFT, lambda _s, l, t: {'type': 'multipliers', 'terms': t.asList()[0][0::2], 'ops': t.asList()[0][1::2]}),
                                             (plusop, 2, opAssoc.LEFT, lambda _s, l, t: {'type': 'adders', 'terms': t.asList()[0][0::2], 'ops': t.asList()[0][1::2]}),
