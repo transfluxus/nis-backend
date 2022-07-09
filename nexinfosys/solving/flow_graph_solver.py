@@ -409,9 +409,10 @@ def resolve_observations_with_only_values_and_parameters(parameters: CaseInsensi
     for expression, obs in observations:
         interface_params: Dict[str, str] = {}
         obs_new_value: Optional[str] = None
-        value, ast, params, issues = evaluate_numeric_expression_with_parameters(expression, state)
+        value, ast, not_found_vars, issues = evaluate_numeric_expression_with_parameters(expression, state)
         # If it is an expression (not a literal value), if there is an interface with same name as a parameter, assume
         # the interface, but if there is not one, take the parameter value
+
         if isinstance(expression, dict):
             # Parameter?  Interface?  Interface with Value?  BEHAVIOR
             # ----------  ----------  ---------------------  --------
@@ -426,26 +427,28 @@ def resolve_observations_with_only_values_and_parameters(parameters: CaseInsensi
 
             _, p = ast_evaluator(expression, State(), None, issues)
             p = set([p_.lower() for p_ in p]).intersection(p_set)
-            if len(p) > 0:
-                params = set()
+            if len(p) > 0:  # There is at least one parameter in the expression
+                params_overridden_by_interface = set()
+                # Get the parameter names from the expression and see if there is an interface with the same name
                 for p_ in p:
                     interfaces: Sequence[Factor] = registry.get(
                         Factor.partial_key(processor=obs.factor.processor, name=p_))
                     if len(interfaces) == 1:
                         # print(f"Assuming interface '{p_}' for observation '{expression}'")
-                        params.add(p_)
+                        params_overridden_by_interface.add(p_)
                         value = None
                         ast = expression
+                not_found_vars.update(params_overridden_by_interface)
 
         if value is None:
-            interface_params, params, issues = convert_params_to_extended_interface_names(params, obs, registry)
+            interface_params, not_found_vars, issues = convert_params_to_extended_interface_names(not_found_vars, obs, registry)
             if interface_params and not issues:
                 ast = replace_ast_variable_parts(ast, interface_params)
                 obs_new_value = replace_string_from_dictionary(obs.value, interface_params)
             else:
                 raise SolvingException(
                     f"Cannot evaluate expression '{expression}' for observation at interface '{obs.factor.name}'. "
-                    f"Params: {params}. Issues: {', '.join(issues)}"
+                    f"Params: {not_found_vars}. Issues: {', '.join(issues)}"
                 )
 
         # Get observer name
