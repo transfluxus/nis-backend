@@ -1,12 +1,30 @@
 <?xml version="1.0"?>
 <rdf:RDF xmlns="http://www.magic-nexus.eu/musiasem.owl#"
      xml:base="http://www.magic-nexus.eu/musiasem.owl"
+     xmlns:msm="http://www.magic-nexus.eu/musiasem.owl#"
      xmlns:owl="http://www.w3.org/2002/07/owl#"
      xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
      xmlns:xml="http://www.w3.org/XML/1998/namespace"
      xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
      xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#">
     <owl:Ontology rdf:about="http://www.magic-nexus.eu/musiasem.owl"/>
+    
+
+
+    <!-- 
+    ///////////////////////////////////////////////////////////////////////////////////////
+    //
+    // Datatypes
+    //
+    ///////////////////////////////////////////////////////////////////////////////////////
+     -->
+
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#subsystemType -->
+
+    <rdfs:Datatype rdf:about="http://www.magic-nexus.eu/musiasem.owl#subsystemType"/>
     
 
 
@@ -90,6 +108,11 @@
 
     <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_destination">
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#ScaleConversionInterface"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#ScaleConversionInterfaceTypes"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#SequentialFlowLinkage"/>
+        <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
+        <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#InterfaceType"/>
     </owl:ObjectProperty>
     
 
@@ -110,10 +133,11 @@
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain>
             <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
+                <owl:unionOf rdf:parseType="Collection">
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#InterfaceType"/>
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#Processor"/>
-                </owl:intersectionOf>
+                    <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#QualifiedQuantity"/>
+                </owl:unionOf>
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
@@ -131,22 +155,43 @@
     
 
 
+    <!-- http://www.magic-nexus.eu/musiasem.owl#has_interval -->
+
+    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_interval">
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#InterfaceRange"/>
+        <rdfs:range>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+            </owl:Restriction>
+        </rdfs:range>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#has_level -->
+
+    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_level">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Processor"/>
+        <rdfs:range>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+            </owl:Restriction>
+        </rdfs:range>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://www.magic-nexus.eu/musiasem.owl#has_local_indicator -->
 
     <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_local_indicator">
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Processor"/>
         <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Indicator"/>
-    </owl:ObjectProperty>
-    
-
-
-    <!-- http://www.magic-nexus.eu/musiasem.owl#has_material_object -->
-
-    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_material_object">
-        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
-        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#InterfaceType"/>
-        <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#MaterialObject"/>
     </owl:ObjectProperty>
     
 
@@ -174,14 +219,7 @@
 
     <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_orientation">
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
-        <rdfs:domain>
-            <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
-                    <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
-                    <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#InterfaceType"/>
-                </owl:intersectionOf>
-            </owl:Class>
-        </rdfs:domain>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
         <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#InterfaceOrientationEnumeration"/>
     </owl:ObjectProperty>
     
@@ -191,6 +229,11 @@
 
     <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_origin">
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#ScaleConversionInterface"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#ScaleConversionInterfaceTypes"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#SequentialFlowLinkage"/>
+        <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
+        <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#InterfaceType"/>
     </owl:ObjectProperty>
     
 
@@ -201,10 +244,10 @@
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain>
             <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
+                <owl:unionOf rdf:parseType="Collection">
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#AttributeSet"/>
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#Qualifiable"/>
-                </owl:intersectionOf>
+                </owl:unionOf>
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#ValuePair"/>
@@ -253,13 +296,21 @@
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain>
             <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
+                <owl:unionOf rdf:parseType="Collection">
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#OWLClass_7a6145ae_2854_40c5_afb2_5fdc5de54c91"/>
-                </owl:intersectionOf>
+                </owl:unionOf>
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Processor"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#has_processor_type -->
+
+    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_processor_type">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
     </owl:ObjectProperty>
     
 
@@ -274,16 +325,27 @@
     
 
 
+    <!-- http://www.magic-nexus.eu/musiasem.owl#has_range -->
+
+    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_range">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#InterfaceType"/>
+        <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#InterfaceRange"/>
+    </owl:ObjectProperty>
+    
+
+
     <!-- http://www.magic-nexus.eu/musiasem.owl#has_roegen_type -->
 
     <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_roegen_type">
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain>
             <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
+                <owl:unionOf rdf:parseType="Collection">
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#InterfaceType"/>
-                </owl:intersectionOf>
+                </owl:unionOf>
             </owl:Class>
         </rdfs:domain>
         <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#RoegenTypesEnumeration"/>
@@ -295,8 +357,8 @@
 
     <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_source">
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
-        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
-        <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Interface"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#QualifiedQuantity"/>
+        <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Reference"/>
     </owl:ObjectProperty>
     
 
@@ -307,6 +369,25 @@
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Processor"/>
         <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#SphereEnumeration"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#has_subsystem_type -->
+
+    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_subsystem_type">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Processor"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#has_system -->
+
+    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_system">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Processor"/>
+        <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#System"/>
     </owl:ObjectProperty>
     
 
@@ -334,6 +415,61 @@
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#Processor"/>
         <rdfs:range rdf:resource="http://www.magic-nexus.eu/musiasem.owl#ProcessorTensionness"/>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#has_time -->
+
+    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_time">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#QualifiedQuantity"/>
+        <rdfs:range>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+            </owl:Restriction>
+        </rdfs:range>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#has_unit -->
+
+    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_unit">
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#InterfaceRange"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#InterfaceType"/>
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#QualifiedQuantity"/>
+        <rdfs:range>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+            </owl:Restriction>
+        </rdfs:range>
+    </owl:ObjectProperty>
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#has_value -->
+
+    <owl:ObjectProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#has_value">
+        <rdfs:domain rdf:resource="http://www.magic-nexus.eu/musiasem.owl#QualifiedQuantity"/>
+        <rdfs:range>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#double"/>
+            </owl:Restriction>
+        </rdfs:range>
+        <rdfs:range>
+            <owl:Restriction>
+                <owl:onProperty rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+                <owl:qualifiedCardinality rdf:datatype="http://www.w3.org/2001/XMLSchema#nonNegativeInteger">1</owl:qualifiedCardinality>
+                <owl:onDataRange rdf:resource="http://www.w3.org/2001/XMLSchema#string"/>
+            </owl:Restriction>
+        </rdfs:range>
     </owl:ObjectProperty>
     
 
@@ -442,10 +578,10 @@
         <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topObjectProperty"/>
         <rdfs:domain>
             <owl:Class>
-                <owl:intersectionOf rdf:parseType="Collection">
+                <owl:unionOf rdf:parseType="Collection">
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#PartWholeFlowLinkage"/>
                     <rdf:Description rdf:about="http://www.magic-nexus.eu/musiasem.owl#SequentialFlowLinkage"/>
-                </owl:intersectionOf>
+                </owl:unionOf>
             </owl:Class>
         </rdfs:domain>
         <rdfs:label xml:lang="en">has_t</rdfs:label>
@@ -479,6 +615,14 @@
     ///////////////////////////////////////////////////////////////////////////////////////
      -->
 
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#is_accounted -->
+
+    <owl:DatatypeProperty rdf:about="http://www.magic-nexus.eu/musiasem.owl#is_accounted">
+        <rdfs:subPropertyOf rdf:resource="http://www.w3.org/2002/07/owl#topDataProperty"/>
+    </owl:DatatypeProperty>
     
 
 
@@ -735,6 +879,22 @@
     
 
 
+    <!-- http://www.magic-nexus.eu/musiasem.owl#ExpressionWithCategories -->
+
+    <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#ExpressionWithCategories">
+        <rdfs:subClassOf rdf:resource="http://www.magic-nexus.eu/musiasem.owl#AtomicTypesEnumeration"/>
+    </owl:Class>
+    
+
+
+    <!-- http://www.magic-nexus.eu/musiasem.owl#ExpressionWithParameters -->
+
+    <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#ExpressionWithParameters">
+        <rdfs:subClassOf rdf:resource="http://www.magic-nexus.eu/musiasem.owl#AtomicTypesEnumeration"/>
+    </owl:Class>
+    
+
+
     <!-- http://www.magic-nexus.eu/musiasem.owl#Float -->
 
     <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#Float">
@@ -908,6 +1068,14 @@
     
 
 
+    <!-- http://www.magic-nexus.eu/musiasem.owl#InterfaceRange -->
+
+    <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#InterfaceRange">
+        <rdfs:subClassOf rdf:resource="http://www.magic-nexus.eu/musiasem.owl#MuSIASEMSupportEntities"/>
+    </owl:Class>
+    
+
+
     <!-- http://www.magic-nexus.eu/musiasem.owl#InterfaceType -->
 
     <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#InterfaceType">
@@ -952,14 +1120,6 @@
                 </owl:intersectionOf>
             </owl:Class>
         </rdfs:subClassOf>
-    </owl:Class>
-    
-
-
-    <!-- http://www.magic-nexus.eu/musiasem.owl#MaterialObject -->
-
-    <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#MaterialObject">
-        <rdfs:subClassOf rdf:resource="http://www.magic-nexus.eu/musiasem.owl#MuSIASEMSupportEntities"/>
     </owl:Class>
     
 
@@ -1316,6 +1476,14 @@ Constraints restricting how to build a MuSIASEM model. For instance, it may spec
     
 
 
+    <!-- http://www.magic-nexus.eu/musiasem.owl#System -->
+
+    <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#System">
+        <rdfs:subClassOf rdf:resource="http://www.magic-nexus.eu/musiasem.owl#MuSIASEMSupportEntities"/>
+    </owl:Class>
+    
+
+
     <!-- http://www.magic-nexus.eu/musiasem.owl#Taggable -->
 
     <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#Taggable">
@@ -1391,22 +1559,6 @@ Constraints restricting how to build a MuSIASEM model. For instance, it may spec
 
     <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#ValueTypes">
         <rdfs:subClassOf rdf:resource="http://www.magic-nexus.eu/musiasem.owl#MuSIASEMSupportEntities"/>
-    </owl:Class>
-    
-
-
-    <!-- http://www.magic-nexus.eu/musiasem.owl#ExpressionWithParameters -->
-
-    <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#ExpressionWithParameters">
-        <rdfs:subClassOf rdf:resource="http://www.magic-nexus.eu/musiasem.owl#AtomicTypesEnumeration"/>
-    </owl:Class>
-    
-
-
-    <!-- http://www.magic-nexus.eu/musiasem.owl#ExpressionWithCategories -->
-
-    <owl:Class rdf:about="http://www.magic-nexus.eu/musiasem.owl#ExpressionWithCategories">
-        <rdfs:subClassOf rdf:resource="http://www.magic-nexus.eu/musiasem.owl#AtomicTypesEnumeration"/>
     </owl:Class>
     
 
