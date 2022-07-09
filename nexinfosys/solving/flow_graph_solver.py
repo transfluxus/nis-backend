@@ -986,16 +986,21 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
         interface_nodes: Set[InterfaceNode] = {InterfaceNode(i) for i in glb_idx.get(Factor.partial_key())}
 
         # Get hierarchies of processors and update interfaces to compute
-        partof_hierarchies, partof_weights = compute_partof_hierarchies(glb_idx, interface_nodes)
+        _ = compute_partof_hierarchies(glb_idx, interface_nodes)
+        partof_hierarchies: InterfaceNodeHierarchy = _[0]
+        partof_weights: ProcessorsRelationWeights = _[1]
 
         # Get hierarchies of interface types and update interfaces to compute
-        interfacetype_hierarchies = compute_interfacetype_hierarchies(glb_idx, interface_nodes)
+        interfacetype_hierarchies: InterfaceNodeHierarchy = compute_interfacetype_hierarchies(glb_idx, interface_nodes)
 
-        relations_flow, relations_scale, relations_scale_change = \
-            compute_flow_and_scale_relation_graphs(glb_idx, interface_nodes)
+        _ = compute_flow_and_scale_relation_graphs(glb_idx, interface_nodes)
+        relations_flow: nx.DiGraph = _[0]
+        relations_scale: nx.DiGraph = _[1]
+        relations_scale_change: nx.DiGraph = _[2]
 
         total_results: ResultDict = {}
 
+        # SCENARIOS - Outermost loop of the solver
         for scenario_name, scenario_params in problem_statement.scenarios.items():  # type: str, Dict[str, Any]
             logging.debug(f"********************* SCENARIO: {scenario_name}")
             params = evaluate_parameters_for_scenario(global_parameters, scenario_params)
