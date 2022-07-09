@@ -1003,10 +1003,10 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
         # SCENARIOS - Outermost loop of the solver
         for scenario_name, scenario_params in problem_statement.scenarios.items():  # type: str, Dict[str, Any]
             logging.debug(f"********************* SCENARIO: {scenario_name}")
-            params = evaluate_parameters_for_scenario(global_parameters, scenario_params)
+            params: CaseInsensitiveDict[str, Any] = evaluate_parameters_for_scenario(global_parameters, scenario_params)
             scenario_state = State(params)
-            scenario_partof_weights = resolve_partof_weight_expressions(partof_weights, scenario_state,
-                                                                        raise_error=True)
+            scenario_partof_weights: ProcessorsRelationWeights = \
+                resolve_partof_weight_expressions(partof_weights, scenario_state, raise_error=True)
 
             # Get scenario parameters
             observers_priority_list = parse_string_as_simple_ident_list(
@@ -1030,22 +1030,25 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                 total_dismissed_results: NodeFloatComputedDict = {}
 
                 try:
-                    comp_graph_flow, comp_graph_scale, comp_graph_scale_change = \
-                        compute_flow_and_scale_computation_graphs(scenario_state,
+                    _ = compute_flow_and_scale_computation_graphs(scenario_state,
                                                                   time_relative_observations[time_period],
                                                                   relations_flow,
                                                                   relations_scale,
                                                                   relations_scale_change)
+                    comp_graph_flow: ComputationGraph = _[0]
+                    comp_graph_scale: ComputationGraph = _[1]
+                    comp_graph_scale_change: ComputationGraph = _[2]
 
-                    # Get final results from the absolute observations
-                    results, unresolved_observations_with_interfaces = \
-                        resolve_observations_with_only_values_and_parameters(params, scenario_state, absolute_observations,
-                                                                             observers_priority_list, glb_idx)
+                    #
+                    _ = resolve_observations_with_only_values_and_parameters(
+                            params, scenario_state, absolute_observations, observers_priority_list, glb_idx)
+                    results: NodeFloatComputedDict = _[0]
+                    unresolved_observations_with_interfaces: InterfaceNodeAstDict = _[1]
 
                     # Initializations
                     iteration_number = 1
 
-                    processing_items = [
+                    # ITERATIVE SOLVING, for a pair (Scenario, Time step)
                         ProcessingItem(ComputationSource.Flow, comp_graph_flow, {}),
                         ProcessingItem(ComputationSource.Scale, comp_graph_scale, {}),
                         ProcessingItem(ComputationSource.ScaleChange, comp_graph_scale_change, {}),
@@ -1054,16 +1057,15 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                                        scenario_partof_weights)
                     ]
 
-                    # START ITERATIVE SOLVING
 
                     # We first iterate with policy MissingValueResolutionPolicy.Invalidate trying to get as many results
-                    # we can without supposing zero for missing values.
+                    # we can without assuming zero for missing values.
                     # Second, if specified in paramater "NISSolverMissingValueResolutionPolicy" we try to get further
                     # results with policy MissingValueResolutionPolicy.UseZero.
                     for missing_value_policy in missing_value_policies:
                         previous_len_results = len(results) - 1
 
-                        # Iterate while the number of results is increasing
+                        # Iterate while there are new results
                         while len(results) > previous_len_results:
                             logging.debug(f"********************* Solving iteration: {iteration_number}")
                             previous_len_results = len(results)
