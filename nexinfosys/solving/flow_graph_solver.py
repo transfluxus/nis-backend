@@ -82,13 +82,13 @@ cached_sorts = {}
 # @cached(cache={}, key=lambda cache_key, list: cache_key)
 def sort_something(cache_key, list_to_sort):
     return list_to_sort
-    c = cached_sorts.get(cache_key, [])
-    if len(c) != len(list_to_sort):
-        c = sorted(list_to_sort)
-        cached_sorts[cache_key] = c
-    else:
-        print("Cache hit")
-    return c
+    # c = cached_sorts.get(cache_key, [])
+    # if len(c) != len(list_to_sort):
+    #     c = sorted(list_to_sort)
+    #     cached_sorts[cache_key] = c
+    # else:
+    #     print("Cache hit")
+    # return c
 
 
 class MissingValueResolutionPolicy(Enum):
@@ -106,8 +106,8 @@ class ConflictResolutionAlgorithm:
         self.computation_sources_priority_list = computation_sources_priority_list
         self.aggregation_conflict_policy = aggregation_conflict_policy
 
-    def resolve(self, value1: FloatComputedTuple, value2: FloatComputedTuple) -> Tuple[
-        FloatComputedTuple, FloatComputedTuple]:
+    def resolve(self, value1: FloatComputedTuple, value2: FloatComputedTuple) \
+            -> Tuple[FloatComputedTuple, FloatComputedTuple]:
         assert value1.computation_source != value2.computation_source, \
             f"The computation sources of both conflicting values cannot be the same: {value1.computation_source}"
 
@@ -122,8 +122,8 @@ class ConflictResolutionAlgorithm:
                 return value2, value1
 
         # One of the values has been computed by aggregation while the other is an observation
-        if ifnull(value1.computation_source, value2.computation_source) in (
-        ComputationSource.PartOfAggregation, ComputationSource.InterfaceTypeAggregation):
+        if ifnull(value1.computation_source, value2.computation_source) in (ComputationSource.PartOfAggregation,
+                                                                            ComputationSource.InterfaceTypeAggregation):
             if value1.computation_source is None:
                 # value2 is computed value, value1 is existing value
                 return self.aggregation_conflict_policy.resolve(value2, value1)
@@ -159,7 +159,8 @@ def get_computation_sources_priority_list(s: str) -> List[ComputationSource]:
 
     if len(sources) != len(ComputationSource):
         raise SolvingException(
-            f"The priority list of computation sources should have length {len(ComputationSource)} but has length: {len(sources)}")
+            f"The priority list of computation sources should have "
+            f"length {len(ComputationSource)} but has length: {len(sources)}")
 
     if len(sources) != len(set(sources)):
         raise SolvingException(f"The priority list of computation sources cannot have duplicated values: {sources}")
@@ -187,15 +188,15 @@ def get_evaluated_observations_by_time(prd: PartialRetrievalDictionary) -> TimeO
 
         Each evaluated observation is stored as a tuple:
         * First: the evaluated result as a float or the prepared AST
-        * Second: the observation
+        * Second: the observation.
 
-    :param prd: the global objects dictionary
+    :param prd: the dictionary of global objects
     :return: a time dictionary with a list of observation on each time
     """
     observations: TimeObservationsType = defaultdict(list)
     state = State()
 
-    # Get all observations by time
+    # Get all observations, grouped by time step (including generic time steps, like "Year" or "Month")
     for observation in find_quantitative_observations(prd, processor_instances_only=True):
         # Try to evaluate the observation value
         value, ast, _, issues = evaluate_numeric_expression_with_parameters(observation.value, state)
@@ -250,8 +251,8 @@ def check_type_consistency_from_all_time_periods(time_periods: List[str]) -> str
     return period_type
 
 
-def split_observations_by_relativeness(observations_by_time: TimeObservationsType) -> Tuple[
-    TimeObservationsType, TimeObservationsType]:
+def split_observations_by_relativeness(observations_by_time: TimeObservationsType) \
+        -> Tuple[TimeObservationsType, TimeObservationsType]:
     observations_by_time_norelative = defaultdict(list)
     observations_by_time_relative = defaultdict(list)
     for time, observations in observations_by_time.items():
@@ -262,53 +263,6 @@ def split_observations_by_relativeness(observations_by_time: TimeObservationsTyp
                 observations_by_time_norelative[time].append((value, obs))
 
     return observations_by_time_norelative, observations_by_time_relative
-
-
-def compute_graph_results(comp_graph: ComputationGraph,
-                          existing_results: NodeFloatComputedDict,
-                          previous_known_nodes: Set[InterfaceNode],
-                          computation_source: ComputationSource) -> NodeFloatComputedDict:
-    # Filter results in graph
-    graph_params: NodeFloatDict = {k: v.value for k, v in existing_results.items() if k in comp_graph.nodes}
-
-    # Obtain nodes without a value
-    compute_nodes = comp_graph.nodes_not_in_container(graph_params)
-
-    if len(compute_nodes) == 0:
-        logging.debug("All nodes have a value. Nothing to solve.")
-        return {}
-
-    logging.debug(f"****** NODES: {comp_graph.nodes}")
-    logging.debug(f"****** UNKNOWN NODES: {compute_nodes}")
-
-    new_computed_nodes: Set[InterfaceNode] = {k for k in existing_results if k not in previous_known_nodes}
-    conflicts = comp_graph.compute_conflicts(new_computed_nodes, previous_known_nodes)
-
-    raise_error_if_conflicts(conflicts, graph_params, comp_graph.name)
-
-    results, _ = comp_graph.compute_values(compute_nodes, graph_params)
-
-    # Return only entries with a valid value and set the name
-    return_values: NodeFloatComputedDict = {}
-    for k, v in results.items():
-        if v is not None:
-            # v.name = k.name
-            return_values[k] = FloatComputedTuple(v, Computed.Yes, computation_source=computation_source)
-
-    return return_values
-
-
-def raise_error_if_conflicts(conflicts: Dict[InterfaceNode, Set[InterfaceNode]], graph_params: NodeFloatDict,
-                             graph_name: str):
-    conflict_strings: List[str] = []
-    for param, conf_params in conflicts.items():
-        if conf_params:
-            conf_params_string = "{" + ', '.join([f"{p} ({graph_params[p]})" for p in conf_params]) + "}"
-            conflict_strings.append(f"{param} ({graph_params[param]}) -> {conf_params_string}")
-
-    if conflict_strings:
-        raise SolvingException(
-            f"There are conflicts in the '{graph_name}' computation graph: {', '.join(conflict_strings)}")
 
 
 def create_interface_edges(edges: List[Tuple[Factor, Factor, Optional[str]]]) \
@@ -981,7 +935,7 @@ def init_processor_full_names(registry: PartialRetrievalDictionary):
 def flow_graph_solver(global_parameters: List[Parameter], problem_statement: ProblemStatement,
                       global_state: State, dynamic_scenario: bool) -> List[Issue]:
     """
-    A solver using the graph composed by the interfaces and the relationships (flows, part-of, scale, change-of-scale and relative-to)
+    A solver using the graph composed by the interfaces and the relationships (flows, part-of, scale, change-of-scale and relative-to).
 
     :param global_parameters: Parameters including the default value (if defined)
     :param problem_statement: ProblemStatement object, with scenarios (parameters changing the default)
@@ -996,14 +950,14 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
         glb_idx, _, _, _, _ = get_case_study_registry_objects(global_state)
         init_processor_full_names(glb_idx)
 
-        # Get available observations
+        # Get all the observations, parsed and evaluated, split into Absolute and Relative, then grouped-by Time Step
         time_absolute_observations, time_relative_observations = \
             split_observations_by_relativeness(get_evaluated_observations_by_time(glb_idx))
 
         if len(time_absolute_observations) == 0:
             return [Issue(IType.WARNING, f"No absolute observations have been found. The solver has nothing to solve.")]
 
-        # Get available interfaces
+        # Get all the interfaces of the model, and construct a set of InterfaceNodes
         interface_nodes: Set[InterfaceNode] = {InterfaceNode(i) for i in glb_idx.get(Factor.partial_key())}
 
         # Get hierarchies of processors and update interfaces to compute
@@ -1038,6 +992,7 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
             if missing_value_policy == MissingValueResolutionPolicy.UseZero:
                 missing_value_policies.append(MissingValueResolutionPolicy.UseZero)
 
+            # TIME STEPS - Second loop
             for time_period, absolute_observations in time_absolute_observations.items():
                 logging.debug(f"********************* TIME PERIOD: {time_period}")
 
@@ -1144,6 +1099,8 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
 
                 except SolvingException as e:
                     return [Issue(IType.ERROR, f"Scenario '{scenario_name}' - period '{time_period}'. {e.args[0]}")]
+            # End: Time step loop
+        # End: Scenario loop
 
         # Prepare all output information (store it in the global state, variable "datasets")
         #  - Indicators are calculated inside
@@ -1311,23 +1268,7 @@ def check_unresolved_nodes_in_computation_graphs(computation_graphs: List[Comput
     return issues
 
 
-def check_unresolved_nodes_in_aggregation_hierarchies(hierarchies: List[InterfaceNodeHierarchy],
-                                                      resolved_nodes: NodeFloatComputedDict) -> List[Issue]:
-    issues: List[Issue] = []
-    unresolved_nodes: Set[InterfaceNode] = set()
-
-    for hierarchy in hierarchies:
-        unresolved_nodes.update({n for n in hierarchy if n not in resolved_nodes})
-        for parent, children in hierarchy.items():
-            unresolved_nodes.update({n for n in children if n not in resolved_nodes})
-
-    if unresolved_nodes:
-        issues.append(Issue(IType.WARNING, f"The following nodes in aggregation hierarchies could not be "
-                                           f"evaluated: {unresolved_nodes}"))
-    return issues
-
-
-def compute_flow_and_scale_relation_graphs(registry, interface_nodes: Set[InterfaceNode]):
+def compute_flow_and_scale_relation_graphs(registry, interface_nodes: Set[InterfaceNode]) -> Tuple[nx.DiGraph, nx.DiGraph, nx.DiGraph]:
     # Compute Interfaces -Flow- relations (time independent)
     relations_flow = nx.DiGraph(
         incoming_graph_data=create_interface_edges(
