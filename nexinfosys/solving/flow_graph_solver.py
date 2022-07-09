@@ -753,7 +753,8 @@ def get_processor_partof_relations(glb_idx: PartialRetrievalDictionary) \
 
 
 def compute_hierarchy_graph_results(
-        graph: ComputationGraph, params: NodeFloatComputedDict,
+        graph: ComputationGraph,
+        computed_values: NodeFloatComputedDict,
         prev_computed_values: NodeFloatComputedDict,
         conflict_resolution_algorithm: ConflictResolutionAlgorithm,
         computation_source: ComputationSource) \
@@ -762,7 +763,7 @@ def compute_hierarchy_graph_results(
     Compute nodes in a graph hierarchy and also mark conflicts with existing values (params)
 
     :param graph: hierarchy as a graph of interface nodes
-    :param params: all nodes with a known value
+    :param computed_values: all nodes with a known value
     :param prev_computed_values: all nodes that have been previously computed with same computation source
     :param conflict_resolution_algorithm: algorithm for resolution of conflicts
     :param computation_source: source of computation
@@ -774,7 +775,7 @@ def compute_hierarchy_graph_results(
         input_values: List[FloatExp.ValueWeightPair] = []
 
         for n, weight in inputs:
-            res_backward = compute_node(n)
+            res_backward: Optional[FloatExp] = compute_node(n)
 
             # If node 'n' is a 'split' only one result is needed to compute the result
             if split:
@@ -808,19 +809,29 @@ def compute_hierarchy_graph_results(
             sum_children = solve_inputs(sort_something((node, "r"), graph.reverse_inputs(node)),
                                         graph.get_direct_node_split(node))
 
-        float_value = params.get(node)
+        float_value = computed_values.get(node)
         if sum_children is not None:
             # New value has been computed
             sum_children.name = node.name
             new_computed_value = FloatComputedTuple(sum_children, Computed.Yes, computation_source=computation_source)
 
             if float_value is not None:
-                # Conflict here: applies strategy
-                taken_conflicts[node], dismissed_conflicts[node] = \
-                    conflict_resolution_algorithm.resolve(new_computed_value, float_value)
+                # # Conflict here: applies strategy
+                # taken_conflicts[node], dismissed_conflicts[node] = \
+                #     conflict_resolution_algorithm.resolve(new_computed_value, float_value)
+                #
+                # new_values[node] = taken_conflicts[node]
+                # return_value = taken_conflicts[node].value
+                if new_computed_value.computation_source != float_value.computation_source:
+                    # Conflict here: applies strategy
+                    taken_conflicts[node], dismissed_conflicts[node] = \
+                        conflict_resolution_algorithm.resolve(new_computed_value, float_value)
 
-                new_values[node] = taken_conflicts[node]
-                return_value = taken_conflicts[node].value
+                    new_values[node] = taken_conflicts[node]
+                    return_value = taken_conflicts[node].value
+                else:
+                    return_value = float_value.value
+                    print(f"WARNING: same source? HG. {node.name}")
             else:
                 new_values[node] = new_computed_value
                 return_value = new_computed_value.value
@@ -847,7 +858,8 @@ def compute_hierarchy_graph_results(
 
 
 def compute_hierarchy_aggregate_results(
-        tree: InterfaceNodeHierarchy, params: NodeFloatComputedDict,
+        tree: InterfaceNodeHierarchy,
+        computed_values: NodeFloatComputedDict,
         prev_computed_values: NodeFloatComputedDict,
         conflict_resolution_algorithm: ConflictResolutionAlgorithm,
         missing_values_policy: MissingValueResolutionPolicy,
@@ -858,7 +870,7 @@ def compute_hierarchy_aggregate_results(
     Compute aggregations of nodes in a hierarchy and also mark conflicts with existing values (params)
 
     :param tree: dictionary representing a hierarchy as a tree of interface nodes in the form [parent, set(child)]
-    :param params: all nodes with a known value
+    :param computed_values: all nodes with a known value
     :param prev_computed_values: all nodes that have been previously computed by aggregation
     :param conflict_resolution_algorithm: algorithm for resolution of conflicts
     :param missing_values_policy: policy for missing values when aggregating children
@@ -895,19 +907,29 @@ def compute_hierarchy_aggregate_results(
         if not invalidate_sum_children:
             sum_children = FloatExp.compute_weighted_addition(children_values)
 
-        float_value = params.get(node)
+        float_value = computed_values.get(node)
         if sum_children is not None:
             # New value has been computed
             sum_children.name = node.name
             new_computed_value = FloatComputedTuple(sum_children, Computed.Yes, computation_source=computation_source)
 
             if float_value is not None:
-                # Conflict here: applies strategy
-                taken_conflicts[node], dismissed_conflicts[node] = \
-                    conflict_resolution_algorithm.resolve(new_computed_value, float_value)
+                # # Conflict here: applies strategy
+                # taken_conflicts[node], dismissed_conflicts[node] = \
+                #     conflict_resolution_algorithm.resolve(new_computed_value, float_value)
+                #
+                # new_values[node] = taken_conflicts[node]
+                # return_value = taken_conflicts[node].value
+                if new_computed_value.computation_source != float_value.computation_source:
+                    # Conflict here: applies strategy
+                    taken_conflicts[node], dismissed_conflicts[node] = \
+                        conflict_resolution_algorithm.resolve(new_computed_value, float_value)
 
-                new_values[node] = taken_conflicts[node]
-                return_value = taken_conflicts[node].value
+                    new_values[node] = taken_conflicts[node]
+                    return_value = taken_conflicts[node].value
+                else:
+                    return_value = float_value.value
+                    print(f"WARNING: same source? AR. {node.name}")
             else:
                 new_values[node] = new_computed_value
                 return_value = new_computed_value.value
