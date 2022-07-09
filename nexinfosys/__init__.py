@@ -107,11 +107,11 @@ def simple_regex(names: List[str]):
 def prepare_default_configuration(create_directories):
     def default_directories(path, tmp_path):
         return {
-            "CASE_STUDIES_DIR": f"{path}/data/cs/",
-            "FAO_DATASETS_DIR": f"{path}/data/faostat/",
-            "FADN_FILES_LOCATION": f"{path}/data/fadn",
-            "CACHE_FILE_LOCATION": f"{tmp_path}/sdmx_datasets_cache",
-            "REDIS_HOST_FILESYSTEM_DIR": f"{tmp_path}/sessions",
+            "CASE_STUDIES_DIR": f"{path}{os.sep}data{os.sep}cs{os.sep}",
+            "FAO_DATASETS_DIR": f"{path}{os.sep}data{os.sep}faostat{os.sep}",
+            "FADN_FILES_LOCATION": f"{path}{os.sep}data{os.sep}fadn",
+            "CACHE_FILE_LOCATION": f"{tmp_path}{os.sep}sdmx_datasets_cache",
+            "REDIS_HOST_FILESYSTEM_DIR": f"{tmp_path}{os.sep}sessions",
             "SSP_FILES_DIR": "",
         }
 

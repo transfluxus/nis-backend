@@ -467,6 +467,36 @@ class NIS:
 
 
 if __name__ == '__main__':
+    nis = NIS()
+    nis.open_session(True)
+    nis.reset_commands()
+    # Load file and execute it
+    nis.load_workbook("https://docs.google.com/spreadsheets/d/15NNoP8VjC2jlhktT0A8Y0ljqOoTzgar8l42E5-IRD90/edit#gid=2056162596")
+    issues = nis.submit()
+
+    tmp = nis.query_available_datasets()
+    print("-------------------")
+    print(tmp)
+    d = nis.get_results([(tmp[0]["type"], tmp[0]["name"])])
+    print(d)
+
+    serial_state = serialize_state(nis.get_state())
+    nis.close_session()
+    # -------------------
+    for i in range(10):
+        nis = NIS()
+        nis.open_session(True, deserialize_state(serial_state))
+        nis.load_workbook("https://docs.google.com/spreadsheets/d/1z8QKYkvlUPLAwo6NYM8rRLMj7_QjPRYOgAsTRI2HwWE/edit#gid=1467907392")
+        nis.submit(ignore_imports=True)
+
+        tmp = nis.query_available_datasets()
+        print("-------------------")
+        print(tmp)
+        d = nis.get_results([(tmp[0]["type"], tmp[0]["name"])])
+        print(d)
+
+        nis.close_session()
+
     examples = [
         ("https://docs.google.com/spreadsheets/d/1z8QKYkvlUPLAwo6NYM8rRLMj7_QjPRYOgAsTRI2HwWE/edit#gid=1467907392", False),
         ("https://docs.google.com/spreadsheets/d/12AlJ0tdu2b-cfalNzLqFYfiC-hdDlIv1M1pTE3AfSWY/edit#gid=84311637", False),
