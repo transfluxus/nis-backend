@@ -12,12 +12,13 @@ else:
 #    conf_file_name = 'nis_docker_naples.conf'
 #    print("Literal configuration file name")
 
-os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"] = code_path + "backend/restful_service/" + conf_file_name
-print("Resulting config file name: "+os.environ["MAGIC_NIS_SERVICE_CONFIG_FILE"])
-
 if code_path not in sys.path:
     sys.path.insert(0, code_path)
 print(sys.path)
+
+from nexinfosys import cfg_file_env_var
+os.environ[cfg_file_env_var] = code_path + "backend/restful_service/" + conf_file_name
+print("Resulting config file name: "+os.environ[cfg_file_env_var])
 
 # TODO Disable if deployed in Docker container. The Docker container should be immutable, so no changes to source code
 # TODO expected. If any, do a Stop -> Start cycle.
