@@ -1085,10 +1085,10 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                                 total_dismissed_results.update(dismissed_results)
 
                             if unresolved_observations_with_interfaces:
-                                new_results, unresolved_observations_with_interfaces = \
-                                    resolve_observations_with_interfaces(
-                                        scenario_state, unresolved_observations_with_interfaces, results
-                                    )
+                                _ = resolve_observations_with_interfaces(
+                                        scenario_state, unresolved_observations_with_interfaces, results)
+                                new_results: NodeFloatComputedDict = _[0]
+                                unresolved_observations_with_interfaces: NodeFloatComputedDict = _[1]
                                 results.update(new_results)
 
                             iteration_number += 1
@@ -1117,6 +1117,7 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                         HierarchicalNodeStructure.from_flow_computation_graph(comp_graph_flow, True),
                         HierarchicalNodeStructure.from_partof_aggregation(partof_hierarchies, scenario_partof_weights),
                         HierarchicalNodeStructure.from_interfacetype_aggregation(interfacetype_hierarchies)]
+
                     additional_hierarchical_structure = HierarchicalNodeStructure.from_flow_computation_graph(
                         comp_graph_flow, False)
 
