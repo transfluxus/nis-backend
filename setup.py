@@ -50,7 +50,7 @@ flask run
 
 """
 package_name = 'nexinfosys'
-version = '0.92'
+version = '0.99'
 
 
 def parse_requirements(strs):

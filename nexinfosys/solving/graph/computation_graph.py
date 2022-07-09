@@ -8,24 +8,23 @@ from nexinfosys.solving.graph import Node, EdgeType, Weight, Value
 class ComputationGraph:
     """
     A Computation Graph is a directed graph where:
-     - Each node represents a variable to be computed or which value is given.
+     - Each node represents a variable to be computed, or whose value is given.
      - Each directed edge represents how the destination node can be computed based on the value of the source node, or
-       in the opposite direction if a reverse weight exist.
+       in the opposite direction if a reverse weight exists.
      - Computations can be done in 'direct' order (Top-Down strategy) using the direct weight, and in the 'reverse'
        order (Bottom-Up strategy) using the reverse weight.
 
     How node values are calculated?
 
-     - General rule: Summing up the weighted input values. This is, the selected node value is the sum of each incoming
+     - General rule: Adding the weighted input values, i.e., the value of the selected node is the sum of each incoming
                      (predecessor) node value multiplied by the "weight" attribute associated with the edge from the
                      incoming node.
-     - Split rule: If the node value is split entirely (100%) into the successors nodes, its value can be computed in
-                   the opposite direction (from successors) only by computing one of the input nodes.
+     - Split rule:   If the node value is split entirely (100%) into the successors nodes, its value can be computed in
+                     the opposite direction (from successors) only by computing one of the input nodes.
     """
     def __init__(self, graph: Optional[nx.DiGraph] = None, name: str = None):
         self.graph = nx.DiGraph()
         self.name = name
-
         self.descendants: Optional[Dict[Node, Set[Node]]] = None
 
         if graph:
@@ -119,6 +118,7 @@ class ComputationGraph:
             visit_forward(n)
             self.descendants[n] = visited_nodes - {n}
 
+    # DEPRECATED METHODS
     def compute_conflicts(self, new_computed_nodes: Set[Node], prev_computed_nodes: Set[Node]) -> Dict[Node, Set[Node]]:
         _new_computed_nodes = self.nodes_in_container(new_computed_nodes)
         if not _new_computed_nodes:
@@ -148,7 +148,9 @@ class ComputationGraph:
         return conflicts
 
     def compute_param_conflicts(self, params: Set[Node]) -> Dict[Node, Set[Node]]:
-        """ Calculate the conflicts between nodes with values - the parameters - in a computation graph.
+        """ **DEPRECATED METHOD**
+
+            Calculate the conflicts between nodes with values - the parameters - in a computation graph.
             If node A has a conflict with node B, means that B can be entirely or partially computed from node A,
             so both nodes cannot have input values at the same time (unless these values are consistent).
 
@@ -161,7 +163,6 @@ class ComputationGraph:
                 c: none
                 d: none
 
-            **DEPRECATED METHOD**
 
             :param params: the set of parameters of a computation graph, i.e. the nodes that have values and we use
                            to compute the values in the remaining nodes of the graph.
@@ -196,7 +197,9 @@ class ComputationGraph:
 
     @staticmethod
     def compute_param_combinations(conflicts: Dict[Node, Set[Node]]) -> Set[frozenset]:
-        """ Given the conflicts between parameters in a graph, compute the valid combinations of them.
+        """ **DEPRECATED METHOD**
+
+            Given the conflicts between parameters in a graph, compute the valid combinations of them.
             This is, if there are different nodes that can have a value, compute which combination of them can be used
             when calculating the values in the rest of nodes without having a conflict.
             A "conflict" should be read as: different ways of computing the value for a node.
@@ -253,7 +256,9 @@ class ComputationGraph:
 
     def compute_values(self, nodes: List[Node], params: Dict[Node, Value]) \
             -> Tuple[Dict[Node, Optional[Value]], Dict[Node, Optional[Value]]]:
-        """ Given a computation graph and a set of nodes with values (the parameters) compute the values of
+        """ **DEPRECATED METHOD**
+
+            Given a computation graph and a set of nodes with values (the parameters) compute the values of
             a list of nodes.
 
         :param nodes: the list of nodes whose value we are interested in
