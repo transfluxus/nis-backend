@@ -33,7 +33,7 @@ from enum import Enum
 from typing import Dict, List, Set, Any, Tuple, Union, Optional, NamedTuple, Generator, NoReturn, Sequence
 
 import networkx as nx
-from nexinfosys.command_generators.parser_ast_evaluators import ast_evaluator
+from nexinfosys.command_generators.parser_ast_evaluators import ast_evaluator, ast_to_string
 
 from nexinfosys.command_field_definitions import orientations
 from nexinfosys.command_generators import Issue
@@ -49,7 +49,7 @@ from nexinfosys.models.musiasem_concepts import ProblemStatement, Parameter, Fac
 from nexinfosys.models.musiasem_concepts_helper import find_quantitative_observations
 from nexinfosys.solving.flow_graph_outputs import export_solver_data
 from nexinfosys.solving.graph import InterfaceNode, InterfaceNodeHierarchy, NodeFloatComputedDict, \
-    ProcessorsRelationWeights, NodeFloatDict, ResultDict, ResultKey, ConflictResolution, FloatComputedTuple, \
+    ProcessorsRelationWeights, ResultDict, ResultKey, ConflictResolution, FloatComputedTuple, \
     ComputationSource, Computed, evaluate_parameters_for_scenario, SolvingException, \
     evaluate_numeric_expression_with_parameters, AstType
 from nexinfosys.solving.graph.computation_graph import ComputationGraph
@@ -401,11 +401,12 @@ def replace_ast_variable_parts(ast: AstType, variable_conversion: Dict[str, str]
 def resolve_observations_with_only_values_and_parameters(parameters: CaseInsensitiveDict,
                                                          state: State, observations: ObservationListType,
                                                          observers_priority_list: Optional[List[str]], registry) \
-        -> Tuple[NodeFloatComputedDict, InterfaceNodeAstDict]:
+        -> Tuple[NodeFloatComputedDict, InterfaceNodeAstDict, List[str]]:
     resolved_observations: NodeFloatComputedDict = {}
     unresolved_observations_with_interfaces: InterfaceNodeAstDict = {}
 
     p_set = set([k.lower() for k in parameters.keys()])
+    exceptions = []
     for expression, obs in observations:
         interface_params: Dict[str, str] = {}
         obs_new_value: Optional[str] = None
@@ -446,10 +447,13 @@ def resolve_observations_with_only_values_and_parameters(parameters: CaseInsensi
                 ast = replace_ast_variable_parts(ast, interface_params)
                 obs_new_value = replace_string_from_dictionary(obs.value, interface_params)
             else:
-                raise SolvingException(
-                    f"Cannot evaluate expression '{expression}' for observation at interface '{obs.factor.name}'. "
-                    f"Params: {not_found_vars}. Issues: {', '.join(issues)}"
-                )
+                interface_params = not_found_vars
+                exceptions.append(f"Cannot evaluate expression '{ast_to_string(expression)}' for observation at interface '{obs.factor.name}', processor '{obs.factor.processor.full_hierarchy_name}'. "
+                                  f"Params: {not_found_vars}. Issues: {', '.join(issues)}")
+                # raise SolvingException(
+                #     f"Cannot evaluate expression '{expression}' for observation at interface '{obs.factor.name}'. "
+                #     f"Params: {not_found_vars}. Issues: {', '.join(issues)}"
+                # )
 
         # Get observer name
         observer_name = obs.observer.name if obs.observer else None
@@ -492,7 +496,7 @@ def resolve_observations_with_only_values_and_parameters(parameters: CaseInsensi
                                                              Computed.No, observer_name)
             unresolved_observations_with_interfaces.pop(node, None)
 
-    return resolved_observations, unresolved_observations_with_interfaces
+    return resolved_observations, unresolved_observations_with_interfaces, exceptions
 
 
 def resolve_observations_with_interfaces(
@@ -816,22 +820,22 @@ def compute_hierarchy_graph_results(
             new_computed_value = FloatComputedTuple(sum_children, Computed.Yes, computation_source=computation_source)
 
             if float_value is not None:
-                # # Conflict here: applies strategy
-                # taken_conflicts[node], dismissed_conflicts[node] = \
-                #     conflict_resolution_algorithm.resolve(new_computed_value, float_value)
-                #
-                # new_values[node] = taken_conflicts[node]
-                # return_value = taken_conflicts[node].value
-                if new_computed_value.computation_source != float_value.computation_source:
-                    # Conflict here: applies strategy
-                    taken_conflicts[node], dismissed_conflicts[node] = \
-                        conflict_resolution_algorithm.resolve(new_computed_value, float_value)
+                # Conflict here: applies strategy
+                taken_conflicts[node], dismissed_conflicts[node] = \
+                    conflict_resolution_algorithm.resolve(new_computed_value, float_value)
 
-                    new_values[node] = taken_conflicts[node]
-                    return_value = taken_conflicts[node].value
-                else:
-                    return_value = float_value.value
-                    print(f"WARNING: same source? HG. {node.name}")
+                new_values[node] = taken_conflicts[node]
+                return_value = taken_conflicts[node].value
+                # if new_computed_value.computation_source != float_value.computation_source:
+                #     # Conflict here: applies strategy
+                #     taken_conflicts[node], dismissed_conflicts[node] = \
+                #         conflict_resolution_algorithm.resolve(new_computed_value, float_value)
+                #
+                #     new_values[node] = taken_conflicts[node]
+                #     return_value = taken_conflicts[node].value
+                # else:
+                #     return_value = float_value.value
+                #     print(f"WARNING: same source? HG. {node.name}")
             else:
                 new_values[node] = new_computed_value
                 return_value = new_computed_value.value
@@ -914,22 +918,22 @@ def compute_hierarchy_aggregate_results(
             new_computed_value = FloatComputedTuple(sum_children, Computed.Yes, computation_source=computation_source)
 
             if float_value is not None:
-                # # Conflict here: applies strategy
-                # taken_conflicts[node], dismissed_conflicts[node] = \
-                #     conflict_resolution_algorithm.resolve(new_computed_value, float_value)
-                #
-                # new_values[node] = taken_conflicts[node]
-                # return_value = taken_conflicts[node].value
-                if new_computed_value.computation_source != float_value.computation_source:
-                    # Conflict here: applies strategy
-                    taken_conflicts[node], dismissed_conflicts[node] = \
-                        conflict_resolution_algorithm.resolve(new_computed_value, float_value)
+                # Conflict here: applies strategy
+                taken_conflicts[node], dismissed_conflicts[node] = \
+                    conflict_resolution_algorithm.resolve(new_computed_value, float_value)
 
-                    new_values[node] = taken_conflicts[node]
-                    return_value = taken_conflicts[node].value
-                else:
-                    return_value = float_value.value
-                    print(f"WARNING: same source? AR. {node.name}")
+                new_values[node] = taken_conflicts[node]
+                return_value = taken_conflicts[node].value
+                # if new_computed_value.computation_source != float_value.computation_source:
+                #     # Conflict here: applies strategy
+                #     taken_conflicts[node], dismissed_conflicts[node] = \
+                #         conflict_resolution_algorithm.resolve(new_computed_value, float_value)
+                #
+                #     new_values[node] = taken_conflicts[node]
+                #     return_value = taken_conflicts[node].value
+                # else:
+                #     return_value = float_value.value
+                #     print(f"WARNING: same source? AR. {node.name}")
             else:
                 new_values[node] = new_computed_value
                 return_value = new_computed_value.value
@@ -1039,16 +1043,17 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                     comp_graph_scale: ComputationGraph = _[1]
                     comp_graph_scale_change: ComputationGraph = _[2]
 
-                    #
                     _ = resolve_observations_with_only_values_and_parameters(
                             params, scenario_state, absolute_observations, observers_priority_list, glb_idx)
                     results: NodeFloatComputedDict = _[0]
                     unresolved_observations_with_interfaces: InterfaceNodeAstDict = _[1]
+                    f_issues = _[2]
+                    issues.extend([Issue(IType.ERROR, f) for f in f_issues])
 
                     # Initializations
                     iteration_number = 1
 
-                    # ITERATIVE SOLVING, for a pair (Scenario, Time step)
+                    processing_items = [
                         ProcessingItem(ComputationSource.Flow, comp_graph_flow, {}),
                         ProcessingItem(ComputationSource.Scale, comp_graph_scale, {}),
                         ProcessingItem(ComputationSource.ScaleChange, comp_graph_scale_change, {}),
@@ -1057,6 +1062,7 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                                        scenario_partof_weights)
                     ]
 
+                    # ITERATIVE SOLVING, for a pair (Scenario, Time step)
 
                     # We first iterate with policy MissingValueResolutionPolicy.Invalidate trying to get as many results
                     # we can without assuming zero for missing values.
@@ -1071,13 +1077,28 @@ def flow_graph_solver(global_parameters: List[Parameter], problem_statement: Pro
                             previous_len_results = len(results)
 
                             for pi in processing_items:
+
+                                # Core of the solver
                                 if pi.source.is_aggregation():
-                                    new_results, taken_results, dismissed_results = compute_hierarchy_aggregate_results(
-                                        pi.hierarchy, results, pi.results, conflict_resolution_algorithm,
-                                        missing_value_policy, pi.source, pi.partof_weights)
+                                    _ = compute_hierarchy_aggregate_results(
+                                        pi.hierarchy,
+                                        results,
+                                        pi.results,
+                                        conflict_resolution_algorithm,
+                                        missing_value_policy,
+                                        pi.source,
+                                        pi.partof_weights)
                                 else:
-                                    new_results, taken_results, dismissed_results = compute_hierarchy_graph_results(
-                                        pi.hierarchy, results, pi.results, conflict_resolution_algorithm, pi.source)
+                                    _ = compute_hierarchy_graph_results(
+                                        pi.hierarchy,
+                                        results,
+                                        pi.results,
+                                        conflict_resolution_algorithm,
+                                        pi.source)
+
+                                new_results: NodeFloatComputedDict = _[0]
+                                taken_results: NodeFloatComputedDict = _[1]
+                                dismissed_results: NodeFloatComputedDict = _[2]
 
                                 pi.results.update(new_results)
                                 results.update(new_results)
