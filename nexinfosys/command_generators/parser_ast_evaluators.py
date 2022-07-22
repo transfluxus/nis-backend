@@ -1000,6 +1000,15 @@ if __name__ == '__main__':
     # global_scalar_indicators
     # local_scalar_indicators
     # evaluate_numeric_expression_with_parameters
+    issues = []
+    s = State()
+    s.set("time", 2016)
+    s.set("scenario", "s3")
+    c = "?time==2016 -> (?scenario=='s2' -> 4, scenario=='s1' -> 1, -1?), scenario=='s3' -> 2?"
+    c = '?scenario=="government_directed" and time==2030 -> 0.9477, scenario=="market_driven" and time==2030 -> 0.9970, 0.5111?'
+    c = '? scenario=="government_directed" -> (?time==2030 -> 0.9477, time==2050 -> 0.0000, 1?), scenario=="market_driven" -> (?time==2030 -> 0.9970, time==2050 -> 0.0000, 1?), scenario=="people_powered" -> (?time==2030 -> 0.5111, time==2050 -> 0.0000, 1?), 1?'
+    ast = string_to_ast(arith_boolean_expression, c)
+    res, unres = ast_evaluator(ast, s, None, issues)
 
     ast = string_to_ast(arith_boolean_expression_with_less_tokens, "200 < capacity_factor and capacity_factor < 400")
     ast2 = string_to_ast(arith_boolean_expression, "200 < capacity_factor and capacity_factor < 400")
