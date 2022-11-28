@@ -142,8 +142,7 @@ def lcia_method(method: str, category: str, indicator: str,
     global lcia_methods
     if not lcia_methods and lcia_methods_dict:
         lcia_methods = PartialRetrievalDictionary()
-        from random import random
-        for k, v in lcia_methods_dict.items():
+        for i, t in enumerate(lcia_methods_dict.items()):
             # [0] m=Method,
             # [1] t=caTegory,
             # [2] d=inDicator,
@@ -151,9 +150,10 @@ def lcia_method(method: str, category: str, indicator: str,
             # [4] i=Interface,
             # [5] c=Compartment,
             # [6] s=Subcompartment,
+            k, v = t
             _ = dict(m=k[0], t=k[1], d=k[2], h=k[3], i=k[4], c=k[5], s=k[6])
-            # NOTE: a random() is generated just to grant that the tuple is unique
-            lcia_methods.put(_, (v[0], v[1], v[2], random()))
+            # NOTE: 'i' is used to assure the tuple is unique
+            lcia_methods.put(_, (v[0], v[1], v[2], i))
 
     if lcia_methods is None or \
             indicator is None or indicator.strip() == "" or \
@@ -161,39 +161,44 @@ def lcia_method(method: str, category: str, indicator: str,
             category is None or category.strip() == "":
         return None
 
-    k = dict(d=indicator)
+    qk = dict(d=indicator)
     if method:
-        k["m"] = method
+        qk["m"] = method
     if category:
-        k["t"] = category
+        qk["t"] = category
     if horizon:
-        k["h"] = horizon
+        qk["h"] = horizon
     if compartment:
-        k["c"] = compartment
+        qk["c"] = compartment
     if subcompartment:
-        k["s"] = subcompartment
+        qk["s"] = subcompartment
 
-    ms = lcia_methods.get(key=k, key_and_value=True)
-    indices = create_dictionary()
+    ms = lcia_methods.get(key=qk, key_and_value=True)  # Query-Obtain the LCIA CF to be used
+    indicators_weights = create_dictionary()
     for k, v in ms:
         method = k["m"]
-        idx_name = f'{indicator}_{method}'
+        indic_name = f'{indicator}_{method}'
+        if_name = k["i"]
         if k["h"] != "":
-            idx_name += f'_{k["h"]}'
+            indic_name += f'_{k["h"]}'
         if k["c"] != "":
-            idx_name += f'_{k["c"]}'
+            indic_name += f'_{k["c"]}'
+            if_name += f'_{k["c"]}'
         if k["s"] != "":
-            idx_name += f'_{k["s"]}'
+            indic_name += f'_{k["s"]}'
+            if_name += f'_{k["s"]}'
         if k["t"] != "":
-            idx_name += f'_{k["t"]}'
+            indic_name += f'_{k["t"]}'
 
-        idx_name = get_nis_name(idx_name)
-        if idx_name in indices:
-            lst = indices[idx_name]
+        indic_name = get_nis_name(indic_name)
+        if_name = get_nis_name(if_name)
+        if indic_name in indicators_weights:
+            lst = indicators_weights[indic_name]
         else:
             lst = []
-            indices[idx_name] = lst
-        lst.append((k["i"], v[0], float(v[1])))  # Interface, TargetUnit, Weight
+            indicators_weights[indic_name] = lst
+
+        lst.append((if_name, v[0], float(v[1])))  # Interface, TargetUnit, Weight
 
     ifaces = create_dictionary()
     for t in state.list_namespace_variables():
@@ -201,31 +206,31 @@ def lcia_method(method: str, category: str, indicator: str,
         p = t[1]  # * ureg(iface_unit)
         ifaces[t[0]] = p
 
-    res = dict()
-    for name, lst in indices.items():
+    indicators_values = dict()
+    for name, lst_weights in indicators_weights.items():
         interfaces = []
         weights = []  # From "
         involved_vars = {}
-        for t in lst:
+        for t in lst_weights:
             if t[0] in ifaces:
                 v = ifaces[t[0]]  # TODO .to(t[1])
                 if math.isnan(v):
-                    involved_vars[t[0]] = "NAv"
+                    involved_vars[t[0]] = "NAv"  # It is an interface but its value is not available
                 else:
                     involved_vars[t[0]] = "Av"
                     interfaces.append(v)
                     weights.append(t[2])
             else:
-                # NAv variable
+                # "NAp" variable (it is not an interface of the processor, so it does not apply)
                 involved_vars[t[0]] = "NAp"
         # Calculate the value
         ind = np.sum(np.multiply(interfaces, weights))  # * ureg(indicator_unit)
-        res[name] = ind
+        indicators_values[name] = ind
 
     if sum_if_multiple:
-        res = sum(res.values())
+        indicators_values = sum(indicators_values.values())
 
-    return res
+    return indicators_values
 
 
 def starts_with(context, *args):

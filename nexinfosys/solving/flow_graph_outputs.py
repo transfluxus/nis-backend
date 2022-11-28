@@ -312,11 +312,16 @@ def prepare_state(indicators_, system_indicators, global_indicators, scenario_pa
             d.update(indicators_.get((processor, scenario, system, period, scope), {}))
         # Processor attributes
         d.update({k: v for k, v in processor.custom_attributes().items()})
-        # Interface values
-        if "Interface" in group.index.names:
-            iface_idx = group.index.names.index("Interface")
-        else:
-            iface_idx = -1
+        # Interfaces
+        if "Interface" in group.columns:
+            ifaces = group["Interface"].values
+            values = group["Value"].values
+            if case_sensitive:
+                d.update({k: v for k, v in zip(ifaces, values)})
+            else:
+                d.update({k.lower(): v for k, v in zip(ifaces, values)})
+
+        # Interface types
         iface_type_idx = group.index.names.index("InterfaceType")
         orient_idx = group.index.names.index("Orientation")
         ifaces = group.index.get_level_values(iface_type_idx).values if case_sensitive \

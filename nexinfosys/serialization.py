@@ -155,7 +155,7 @@ def serialize_state(state: State):
 
     # !!! WARNING: It destroys "state", so a DEEP COPY is performed !!!
     tmp = sys.getrecursionlimit()
-    sys.setrecursionlimit(2500)
+    sys.setrecursionlimit(10000)
     state2 = copy.deepcopy(state)
     sys.setrecursionlimit(tmp)
 
