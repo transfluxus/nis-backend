@@ -19,7 +19,8 @@ from lxml import etree
 from nexinfosys import case_sensitive
 from nexinfosys.command_generators import global_functions, IType, Issue, IssueLocation, parser_field_parsers
 from nexinfosys.command_generators.parser_field_parsers import string_to_ast, arith_boolean_expression, key_value_list, \
-    simple_ident, expression_with_parameters, number_interval, arith_boolean_expression_with_less_tokens
+    simple_ident, expression_with_parameters, number_interval, arith_boolean_expression_with_less_tokens, \
+    indicator_expression
 from nexinfosys.common.helper import create_dictionary, PartialRetrievalDictionary, strcmp, is_float
 from nexinfosys.model_services import State
 from nexinfosys.models.musiasem_concepts import ExternalDataset, FactorType, Processor, Hierarchy
@@ -126,6 +127,7 @@ def lcia_method(method: str, category: str, indicator: str,
                 compartment: str = None,
                 subcompartment: str = None,
                 horizon: str = None, sum_if_multiple: bool = True,
+                trace: int = 0,
                 state: State = None, lcia_methods_dict: Dict = None):
     """
     Calculate the LCIA method indicator
@@ -135,6 +137,9 @@ def lcia_method(method: str, category: str, indicator: str,
     :param horizon: Time horizon
     :param compartment: Compartment to which the indicator applies
     :param subcompartment: Subcompartment to which the indicator applies
+    :param category: Category to which the indicator applies
+    :param sum_if_multiple: If there are several indicators with the same name, sum them
+    :param trace: If True, print the important information
     :param state: Current values of processor plus parameters
     :param lcia_methods_dict: Where LCIA data is collected
     :return: A dictionary with the indicators and calculated values
@@ -161,6 +166,12 @@ def lcia_method(method: str, category: str, indicator: str,
             category is None or category.strip() == "":
         return None
 
+    trace = int(trace) == 1
+
+    if trace:
+        print(f"Processor: {state.get('__processor_name')}\tLCIA method: {method}\tCategory: {category}\tIndicator: {indicator}\t"
+              f"Comp: {compartment}\tSubcomp: {subcompartment}\t"
+              f"Horizon: {horizon}\tsum_if_multiple: {sum_if_multiple}")
     qk = dict(d=indicator)
     if method:
         qk["m"] = method
@@ -208,6 +219,8 @@ def lcia_method(method: str, category: str, indicator: str,
 
     indicators_values = dict()
     for name, lst_weights in indicators_weights.items():
+        if trace:
+            lst_av = []
         interfaces = []
         weights = []  # From "
         involved_vars = {}
@@ -220,15 +233,23 @@ def lcia_method(method: str, category: str, indicator: str,
                     involved_vars[t[0]] = "Av"
                     interfaces.append(v)
                     weights.append(t[2])
+                    if trace:
+                        lst_av.append(f"{t[2]*v}\t{t[2]}\t{v}\t{t[0]}")
             else:
                 # "NAp" variable (it is not an interface of the processor, so it does not apply)
                 involved_vars[t[0]] = "NAp"
         # Calculate the value
         ind = np.sum(np.multiply(interfaces, weights))  # * ureg(indicator_unit)
         indicators_values[name] = ind
+        if trace:
+            print(f"{ind}\t\t\tIndicator: {name}")
+            print("\n".join(lst_av))
 
     if sum_if_multiple:
+        lon = len(indicators_values)
         indicators_values = sum(indicators_values.values())
+        if trace:
+            print(f"{indicators_values}\t\t\tSum of {lon} sub-indicators")
 
     return indicators_values
 
@@ -997,6 +1018,12 @@ if __name__ == '__main__':
     from nexinfosys.model_services import State
     from dotted.collection import DottedDict
 
+    issues = []
+    s = State()
+
+    ast = string_to_ast(indicator_expression, 'LCIAMethod("ReCiPe Midpoint (H) V1.13", "climate change", "GWP100", trace=1)'.lower())
+    val, variables = ast_evaluator(ast, s, None, issues)
+
     # AST_EVALUATOR APPLICATIONS
     # Dataset expansion: dataset name "." dataset field, operations, functions
     # ProcessorScalings: _get_scale_value
@@ -1005,8 +1032,6 @@ if __name__ == '__main__':
     # global_scalar_indicators
     # local_scalar_indicators
     # evaluate_numeric_expression_with_parameters
-    issues = []
-    s = State()
     s.set("time", 2016)
     s.set("scenario", "s3")
     c = "?time==2016 -> (?scenario=='s2' -> 4, scenario=='s1' -> 1, -1?), scenario=='s3' -> 2?"

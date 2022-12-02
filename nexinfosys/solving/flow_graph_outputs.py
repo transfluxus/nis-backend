@@ -307,6 +307,8 @@ def prepare_state(indicators_, system_indicators, global_indicators, scenario_pa
     if system_indicators and system:
         d.update(system_indicators.get((scenario, system, period, scope), {}))
     if processor_name:
+        # The processor name
+        d["__processor_name"] = processor_name
         # Local Indicator values
         if indicators_:
             d.update(indicators_.get((processor, scenario, system, period, scope), {}))

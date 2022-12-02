@@ -17,12 +17,11 @@ from pyparsing import (ParserElement, Regex,
                        Forward, Regex, Suppress, Literal, Word,
                        Optional, OneOrMore, ZeroOrMore, Or, alphas, alphanums, White,
                        Combine, Group, delimitedList, nums, quotedString, NotAny,
-                       Keyword, removeQuotes, CaselessKeyword, OnlyOnce)
+                       removeQuotes, CaselessKeyword, OnlyOnce)
 from typing import Dict, List
 
 from nexinfosys import ureg
 from nexinfosys.command_generators import global_functions, global_functions_extended, extended_dict_of_function_names
-from nexinfosys.common.helper import create_dictionary, PartialRetrievalDictionary
 
 # Enable memoizing
 # See: https://stackoverflow.com/questions/21370697/pyparsing-performance-and-memory-usage/21371472#21371472
@@ -69,8 +68,8 @@ conditions_opening = Literal("?")
 conditions_closing = Literal("?")
 
 # Boolean constants
-true = Keyword("True")
-false = Keyword("False")
+true = CaselessKeyword("True")
+false = CaselessKeyword("False")
 # Simple identifier
 simple_ident = Word(alphas+"_", alphanums+"_")  # Start in letter and "_", then "_" + letters + numbers
 external_ds_name = Word(alphas, alphanums+"-"+"_"+".")  # Dataset names can have
@@ -90,10 +89,12 @@ positive_float = (Combine(Word(nums) + Optional("." + Word(nums)) + Optional(one
                                    )
 signed_float = (Optional(Or([Literal("+"), Literal("-")])("sign")) + positive_float).\
     setParseAction(lambda _s, l, t: {'type': 'float',
-                                     'value': t[0]['value'] if isinstance(t[0], dict) else (-t[1]['value'] if t[0]=='-' else t[1]['value'])
+                                     'value': t[0]['value'] if isinstance(t[0], dict) else (-t[1]['value'] if t[0] == '-' else t[1]['value'])
                                      }
                    )
-boolean = Or([true, false]).setParseAction(lambda t: {'type': 'boolean', 'value': bool(t[0])})
+boolean = Or([true, false]).setParseAction(
+    lambda t: {'type': 'boolean', 'value': bool(t[0])}
+)
 
 quoted_string = quotedString(r".*")
 unquoted_string = Regex(r".*")  # Anything
