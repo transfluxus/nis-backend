@@ -23,7 +23,8 @@ from uuid import UUID
 import jsonpickle
 import numpy as np
 import pandas as pd
-import pycurl
+import requests as requests
+
 from multidict import MultiDict, CIMultiDict
 from pandas import DataFrame
 
@@ -1155,6 +1156,7 @@ def wv_download_file(location, wv_user=None, wv_password=None, wv_host_name=None
 
 
 def download_with_pycurl(location):
+    import pycurl
     headers = {}
 
     def header_function(header_line):
@@ -1201,7 +1203,7 @@ def download_with_pycurl(location):
     return status, headers, data
 
 
-def download_file(location, wv_user=None, wv_password=None, wv_host_name=None):
+def download_file(location, wv_user=None, wv_password=None, wv_host_name=None) -> io.BytesIO:
     """
     Download a file from the specified URL location.
 
@@ -1244,7 +1246,12 @@ def download_file(location, wv_user=None, wv_password=None, wv_host_name=None):
             else:
                 url = f"https://docs.google.com/uc?export=download&id={file_id}"
             # resp = requests.get(url, headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}, allow_redirects=True)  # headers={'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
-            status_code, headers, data = download_with_pycurl(url)
+            # status_code, headers, data = download_with_pycurl(url)
+            # print(url)
+            response = requests.get(url)
+            status_code = response.status_code
+            headers = response.headers
+            data = io.BytesIO(response.content)
             logging.debug(f'curl -L "{url}" >> out.xlsx')
             if status_code == 200 and "text/html" not in headers["content-type"]:
             # if resp.status_code == 200 and "text/html" not in resp.headers["Content-Type"]:
@@ -1345,7 +1352,7 @@ def prepare_dataframe_after_external_read(ds, df, cmd_name):
                 cols.append(d.code)  # Exact case
                 if not d.is_measure:
                     dims.add(d.code)
-                    num_column = df.dtypes[c] in [np.int64, np.float]
+                    num_column = df.dtypes[c] in [np.int64, float]
                     # NaN values in dimensions replaced by ""
                     df[c] = df[c].fillna('')
                     # Convert to string if it is numeric

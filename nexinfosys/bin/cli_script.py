@@ -92,8 +92,10 @@ def prepare_base_state(base_url: str, solve: bool, directory: str = None, force_
         base_url = get_file_url(base_url)
     logging.debug(f"File to be downloaded: {base_url}")
     tmp_io = download_file(base_url)
+    #bytes_io = tmp_io
     bytes_io = set_zip_timestamp(tmp_io)
-    hash_ = hash_array(bytes_io.getvalue())
+    data = bytes_io.read()
+    hash_ = hash_array(data)
     val_name = get_valid_name(base_url)
     if directory is None:
         directory = tempfile.gettempdir()
