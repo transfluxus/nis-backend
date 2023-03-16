@@ -1,11 +1,9 @@
 import os
 
-import dash
+#import dash
 import pandas as pd
-from dash.dependencies import Input, Output
-from dash import dcc
-from dash import html
-import dash_pivottable
+
+
 import plotly.express as px
 
 data = [
@@ -258,6 +256,11 @@ data = [
 
 
 def create_dashboard_app(outputs_dir):
+    from dash import dcc
+    from dash import html
+    import dash_pivottable
+    from dash.dependencies import Input, Output
+    import dash
     # Prepare dashboard
     df = pd.read_csv(os.path.join(outputs_dir, "indicators.csv"))
     tmp = df.values.tolist()

@@ -38,7 +38,7 @@ def convert_lcia_implementation_to_nis(lcia_implementation_file: str, lcia_file:
         if method_is is not None:
             if method.lower() not in method_is:
                 continue
-
+        # print(method.lower())
         category = units.cell(row=r, column=2).value.strip()
         indicator = units.cell(row=r, column=3).value.strip()
         unit = units.cell(row=r, column=4).value.strip()

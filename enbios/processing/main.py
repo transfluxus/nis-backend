@@ -6,11 +6,14 @@ import sys
 import time
 from multiprocessing import Pool, cpu_count
 import itertools
+from pathlib import Path
 
 import pandas as pd
 from typing import Tuple, Dict, Set, List, Optional
 from NamedAtomicLock import NamedAtomicLock
 from friendly_data.converters import from_df
+
+from enbios2.base.util import fetch_or_use_cached, experiment_prepare
 from nexinfosys.bin.cli_script import get_valid_name, get_file_url, prepare_base_state, print_issues
 from nexinfosys.command_generators import IType, Issue
 from nexinfosys.command_generators.parser_ast_evaluators import ast_evaluator
@@ -317,13 +320,19 @@ class Enviro:
         :return:
         """
 
+
         output_dir = self._cfg["output_directory"]
         if not os.path.isabs(output_dir):
             output_dir = os.path.join(os.path.dirname(self._cfg_file_path), output_dir)
 
         print(f"output_dir: {output_dir}")
-        os.makedirs(output_dir, exist_ok=True)
 
+        os.makedirs(output_dir, exist_ok=True)
+        temp_dir = Path(output_dir, "temp")
+        temp_dir.mkdir(exist_ok=True)
+
+        fetch_or_use_cached(self._cfg["nis_file_location"], temp_dir.joinpath("nis_file.xlsx"))
+        # experiment_prepare(temp_dir.joinpath("nis_file.xlsx"))
         # Prepare Base
         state, serial_state, issues = prepare_base_state(self._cfg["nis_file_location"], False, output_dir)
 

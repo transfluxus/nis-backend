@@ -13,6 +13,7 @@ import sys
 import traceback
 from os import listdir
 from os.path import isfile, join
+from typing import Optional
 
 from nexinfosys.bin.cli_script import print_issues, PrintColors
 from nexinfosys.command_generators import Issue, IType
@@ -142,7 +143,7 @@ class SpoldToNIS:
         return spolds
 
     @staticmethod
-    def _get_spold_files_from_nis_file(nis_url):
+    def _get_spold_files_from_nis_file(file_path):
         """
         Elaborate a list of Spold files (to be later processed) coming from a NIS formatted XLSX file (nis_url).
 
@@ -152,8 +153,8 @@ class SpoldToNIS:
         :param nis_url: Location of NIS formatted XLSX
         :return: List of dict's, where each dict contains the information of a Spold file
         """
-        bytes_io = download_file(nis_url)
-        xl = pd.ExcelFile(bytes_io.getvalue(), engine='openpyxl')
+        # print(nis_url)
+        xl = pd.ExcelFile(file_path, engine='openpyxl')
         # xl = pd.ExcelFile(xlrd.open_workbook(file_contents=bytes_io.getvalue()), engine="xlrd")
         spolds = []
         for sheet_name in xl.sheet_names:
@@ -184,7 +185,58 @@ class SpoldToNIS:
                                            ecoinvent_carrier_name=ecoinvent_carrier_name))
         return spolds
 
-    def spold2nis(self, default_output_interface: str, lci_base: str, correspondence, nis_base_url: str, output_file: str):
+    @staticmethod
+    def _get_spold_files_from_remote_nis_file(nis_url):
+        """
+        Elaborate a list of Spold files (to be later processed) coming from a NIS formatted XLSX file (nis_url).
+
+        The file is examined, looking for columns (row 1) named "processor", "@ecoinventfilename" and "@ecoinventname"
+        in "BareProcessors" sheets to construct each of the entries (each entry is a "dict") of the returned list.
+
+        :param nis_url: Location of NIS formatted XLSX
+        :return: List of dict's, where each dict contains the information of a Spold file
+        """
+        # print(nis_url)
+        bytes_io = download_file(nis_url)
+
+        xl = pd.ExcelFile(bytes_io, engine='openpyxl')
+        # xl = pd.ExcelFile(xlrd.open_workbook(file_contents=bytes_io.getvalue()), engine="xlrd")
+        spolds = []
+        for sheet_name in xl.sheet_names:
+            if not sheet_name.lower().startswith("bareprocessors"):
+                continue
+            df = xl.parse(sheet_name, header=0)
+            ecoinvent_filename_idx = None
+            ecoinvent_carrier_name_idx = None
+            name_idx = None
+            for idx, col in enumerate(df.columns):
+                if col.lower() == "@ecoinventfilename":
+                    ecoinvent_filename_idx = idx
+                elif col.lower() == "@ecoinventcarriername":
+                    ecoinvent_carrier_name_idx = idx
+                elif col.lower() == "processor":
+                    name_idx = idx
+            if ecoinvent_filename_idx is not None and name_idx is not None:
+                for idx, r in df.iterrows():
+                    ecoinvent_filename = r[df.columns[ecoinvent_filename_idx]]
+                    if ecoinvent_carrier_name_idx is not None:
+                        ecoinvent_carrier_name = r[df.columns[ecoinvent_carrier_name_idx]]
+                    else:
+                        ecoinvent_carrier_name = None
+                    name = r[df.columns[name_idx]]
+                    if ecoinvent_filename != "" and not isinstance(ecoinvent_filename, float) and name != "":
+                        spolds.append(dict(name=name,
+                                           ecoinvent_filename=ecoinvent_filename,
+                                           ecoinvent_carrier_name=ecoinvent_carrier_name))
+        return spolds
+
+    def spold2nis(self,
+                  default_output_interface: str,
+                  lci_base: str,
+                  correspondence,
+                  nis_file: Optional[str],
+                  nis_base_url: Optional[str],
+                  output_file: str):
         """
         A method to transform Spold files into a NIS Workbook with InterfacesTypes, BareProcessors and Interfaces
 
@@ -302,8 +354,10 @@ class SpoldToNIS:
         if correspondence:
             _ = self._get_spold_files_from_correspondence_file(correspondence)
             spolds.extend(_)
+        if nis_file:
+            spolds.extend(self._get_spold_files_from_nis_file(nis_file))
         if nis_base_url:
-            _ = self._get_spold_files_from_nis_file(nis_base_url)
+            _ = self._get_spold_files_from_remote_nis_file(nis_base_url)
             spolds.extend(_)
 
         interface_types = {}
@@ -415,3 +469,8 @@ class SpoldToNIS:
                   f" * Upload the generated file to Google Drive,\n"
                   f" * Go to the uploaded file in Google Drive, open right click menu, 'Get Link' (select 'anybody with the link') and\n"
                   f" * Copy/paste the link into the appropriate 'ImportCommands' cell (under 'Workbook' column) of NIS base file.")
+
+    # nci_to_nis
+    # from kalleiope
+    # energy plans
+    # lcia_implementation_to_csv

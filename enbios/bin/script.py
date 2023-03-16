@@ -254,6 +254,7 @@ class Enbios:
         s2n.spold2nis("generic_energy_production",
                       spold_files_folder,
                       correspondence_path,
+                      None,
                       nis_base_url,
                       nis_structurals_output)
 

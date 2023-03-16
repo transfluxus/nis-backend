@@ -1,12 +1,15 @@
-nexinfosys>=0.92
-brightway2==2.3
+#cython
+#Cython
+nexinfosys @ git+https://github.com/ENVIRO-Module/nis-backend@develop
+brightway2>=2.3,<=3.0
 # calliope==0.6.6.post1
 friendly-data>=0.2.1
 # friendly-data-registry>=20210406
 pyyaml==6.0
 numpy>=1.20.2
 pandas==1.2.5
-openpyxl>=3.0.7
+#openpyxl>=3.0.7
+openpyxl==3.0.10
 networkx>=2.5.1
 # bw2io>=0.8.3.1
 fire>=0.4.0
